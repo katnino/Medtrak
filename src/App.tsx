@@ -10,6 +10,7 @@ import AppointmentAlarmOverlay from './components/AppointmentAlarmOverlay'
 import { useLocalStorage } from './lib/storage'
 import { appointmentsForDate, occurrencesForDate, toDateKey } from './lib/schedule'
 import { playChime, requestNotificationPermission, sendBrowserNotification } from './lib/notify'
+import { syncLocalNotifications } from './lib/localNotifications'
 import type { Appointment, DoseLog, DoseOccurrence, DoseStatus, Medication } from './types'
 
 export default function App() {
@@ -39,6 +40,12 @@ export default function App() {
   useEffect(() => {
     requestNotificationPermission()
   }, [])
+
+  // Native builds keep a rolling, on-device notification schedule. The helper
+  // is a no-op on the web, where the existing in-tab reminder engine remains.
+  useEffect(() => {
+    void syncLocalNotifications(medications, logs, appointments)
+  }, [medications, logs, appointments])
 
   // reminder engine — checks every 20s for newly-due, un-acted doses & appointments
   const alarmingKeys = useRef(new Set(alarmQueue.map((o) => o.key)))

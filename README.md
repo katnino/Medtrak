@@ -74,3 +74,27 @@ background); this is a browser platform limitation, not something a static
 site can work around without a push-notification backend. For anything
 safety-critical, treat this as a helpful nudge alongside — not a replacement
 for — a pillbox or a dedicated medical device.
+
+## Offline native reminders
+
+Medtrak can also be packaged as an iOS or Android app using Capacitor. Native
+builds schedule reminders directly on the device, so they do not need an
+account, backend, or internet connection. The web build remains completely
+static and uses its existing in-tab alarms.
+
+```bash
+# Once per platform
+npx cap add ios
+npx cap add android
+
+# Build the web app, copy it into the native projects, and open the IDE
+npm run cap:ios
+npm run cap:android
+```
+
+Grant notification permission when the app opens. On Android 12+, enable the
+system's “Alarms & reminders” permission for exact scheduling. The Android
+manifest does not request Internet access. The native app keeps up to 60
+upcoming reminders scheduled at once (an iOS platform limit leaves room below
+its maximum of 64); opening the app refreshes that rolling 30-day window after
+changes or over time.
