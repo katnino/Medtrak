@@ -43,7 +43,7 @@ export default function AlarmOverlay({ occurrence, onTake, onSkip, onDismiss }: 
           onClick={onDismiss}
           className="text-xs text-ink-faint hover:text-ink-dim transition-colors mt-6 font-mono"
         >
-          remind me later
+          remind me in 10 min
         </button>
       </div>
     </div>

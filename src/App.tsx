@@ -10,7 +10,14 @@ import AppointmentAlarmOverlay from './components/AppointmentAlarmOverlay'
 import { useLocalStorage } from './lib/storage'
 import { appointmentsForDate, occurrencesForDate, toDateKey } from './lib/schedule'
 import { playChime, requestNotificationPermission, sendBrowserNotification } from './lib/notify'
-import { syncLocalNotifications } from './lib/localNotifications'
+import { Capacitor } from '@capacitor/core'
+import { LocalNotifications, type ActionPerformed } from '@capacitor/local-notifications'
+import {
+  MEDICATION_SNOOZE_ACTION,
+  MEDICATION_TAKEN_ACTION,
+  SNOOZE_MINUTES,
+  syncLocalNotifications,
+} from './lib/localNotifications'
 import type { Appointment, DoseLog, DoseOccurrence, DoseStatus, Medication } from './types'
 
 export default function App() {
@@ -19,6 +26,7 @@ export default function App() {
   const [logs, setLogs] = useLocalStorage<Record<string, DoseLog>>('medtrak.logs', {})
   const [appointments, setAppointments] = useLocalStorage<Appointment[]>('medtrak.appointments', [])
   const [firedAlarms, setFiredAlarms] = useLocalStorage<Record<string, boolean>>('medtrak.fired', {})
+  const [snoozedUntil, setSnoozedUntil] = useLocalStorage<Record<string, number>>('medtrak.snoozedUntil', {})
 
   const [modalMed, setModalMed] = useState<Medication | null | undefined>(undefined) // undefined = closed
   const [modalAppt, setModalAppt] = useState<
@@ -44,8 +52,8 @@ export default function App() {
   // Native builds keep a rolling, on-device notification schedule. The helper
   // is a no-op on the web, where the existing in-tab reminder engine remains.
   useEffect(() => {
-    void syncLocalNotifications(medications, logs, appointments)
-  }, [medications, logs, appointments])
+    void syncLocalNotifications(medications, logs, appointments, snoozedUntil)
+  }, [medications, logs, appointments, snoozedUntil])
 
   // reminder engine — checks every 20s for newly-due, un-acted doses & appointments
   const alarmingKeys = useRef(new Set(alarmQueue.map((o) => o.key)))
@@ -62,7 +70,11 @@ export default function App() {
       // medication doses
       const occ = occurrencesForDate(medications, logs, today)
       const due = occ.filter(
-        (o) => o.status === 'pending' && o.time <= nowHM && !firedAlarms[o.key] && !alarmingKeys.current.has(o.key),
+        (o) => o.status === 'pending'
+          && o.time <= nowHM
+          && (!snoozedUntil[o.key] || snoozedUntil[o.key] <= current.getTime())
+          && !firedAlarms[o.key]
+          && !alarmingKeys.current.has(o.key),
       )
 
       if (due.length > 0) {
@@ -107,7 +119,7 @@ export default function App() {
     const id = setInterval(check, 20_000)
     return () => clearInterval(id)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [medications, logs, appointments, firedAlarms])
+  }, [medications, logs, appointments, firedAlarms, snoozedUntil])
 
   const setStatus = (key: string, status: DoseStatus) => {
     const [medicationId, date, time] = key.split('__')
@@ -122,6 +134,14 @@ export default function App() {
         [key]: { key, medicationId, date, time, status, actedAt: Date.now() },
       }
     })
+    if (status !== 'pending') {
+      setSnoozedUntil((prev) => {
+        if (!prev[key]) return prev
+        const next = { ...prev }
+        delete next[key]
+        return next
+      })
+    }
   }
 
   const todayKey = toDateKey(now)
@@ -163,16 +183,45 @@ export default function App() {
     setAlarmQueue((q) => q.slice(1))
   }
 
-  const dismissAlarm = () => {
-    if (!currentAlarm) return
-    // allow it to re-fire on the next check cycle
+  const snoozeDose = (key: string) => {
+    setSnoozedUntil((prev) => ({
+      ...prev,
+      [key]: Date.now() + SNOOZE_MINUTES * 60_000,
+    }))
     setFiredAlarms((prev) => {
       const next = { ...prev }
-      delete next[currentAlarm.key]
+      delete next[key]
       return next
     })
-    setAlarmQueue((q) => q.slice(1))
+    setAlarmQueue((q) => q.filter((occurrence) => occurrence.key !== key))
   }
+
+  const nativeActionHandler = useRef<(action: ActionPerformed) => void>(() => undefined)
+  nativeActionHandler.current = ({ actionId, notification }) => {
+    const extra = notification.extra as { kind?: string; key?: string } | undefined
+    if (extra?.kind !== 'dose' || !extra.key) return
+    if (actionId === MEDICATION_TAKEN_ACTION) {
+      setStatus(extra.key, 'taken')
+      setAlarmQueue((q) => q.filter((occurrence) => occurrence.key !== extra.key))
+    }
+    if (actionId === MEDICATION_SNOOZE_ACTION) snoozeDose(extra.key)
+  }
+
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return
+    let removed = false
+    let listener: Awaited<ReturnType<typeof LocalNotifications.addListener>> | undefined
+    void LocalNotifications.addListener('localNotificationActionPerformed', (action) => {
+      nativeActionHandler.current(action)
+    }).then((handle) => {
+      if (removed) void handle.remove()
+      else listener = handle
+    })
+    return () => {
+      removed = true
+      if (listener) void listener.remove()
+    }
+  }, [])
 
   const acknowledgeApptAlarm = () => {
     if (!currentApptAlarm) return
@@ -236,7 +285,7 @@ export default function App() {
           occurrence={currentAlarm}
           onTake={() => resolveAlarm('taken')}
           onSkip={() => resolveAlarm('skipped')}
-          onDismiss={dismissAlarm}
+          onDismiss={() => snoozeDose(currentAlarm.key)}
         />
       )}
 

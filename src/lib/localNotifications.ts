@@ -1,13 +1,20 @@
 import { Capacitor } from '@capacitor/core'
 import { LocalNotifications, type LocalNotificationSchema } from '@capacitor/local-notifications'
 import { occurrencesForDate, toDateKey } from './schedule'
-import type { Appointment, DoseLog, Medication } from '../types'
+import type { Appointment, DoseLog, DoseOccurrence, Medication } from '../types'
 
 const SCHEDULED_IDS_KEY = 'medtrak.localNotificationIds'
 const LOOK_AHEAD_DAYS = 30
 // iOS allows at most 64 pending local notifications. Leave a small buffer for
 // the operating system and any future app notifications.
 const MAX_PENDING_NOTIFICATIONS = 60
+
+export const SNOOZE_MINUTES = 10
+export const MEDICATION_TAKEN_ACTION = 'medication-taken'
+export const MEDICATION_SNOOZE_ACTION = 'medication-snooze-10'
+
+const MEDICATION_CHANNEL_ID = 'medication-reminders'
+const MEDICATION_ACTION_TYPE_ID = 'medication-actions'
 
 function storedIds(): number[] {
   try {
@@ -45,10 +52,56 @@ function dateAt(dateKey: string, time: string): Date {
   return new Date(year, month - 1, day, hours, minutes)
 }
 
+function medicationNotification(
+  occurrence: DoseOccurrence,
+  at: Date,
+  idKey: string,
+  usedIds: Set<number>,
+): LocalNotificationSchema & { when: number } {
+  return {
+    id: notificationId(idKey, usedIds),
+    title: `Medication due: ${occurrence.medication.name}`,
+    body: `${occurrence.medication.dosage} · Scheduled for ${occurrence.time}`,
+    schedule: { at, allowWhileIdle: true },
+    extra: { kind: 'dose', key: occurrence.key },
+    actionTypeId: MEDICATION_ACTION_TYPE_ID,
+    channelId: MEDICATION_CHANNEL_ID,
+    // On Android this raises the notification priority so it can appear as a heads-up alert.
+    foreground: true,
+    when: at.getTime(),
+  }
+}
+
+async function configureMedicationNotifications(): Promise<void> {
+  if (Capacitor.getPlatform() === 'android') {
+    await LocalNotifications.createChannel({
+      id: MEDICATION_CHANNEL_ID,
+      name: 'Medication reminders',
+      description: 'Time-sensitive reminders to take medication',
+      importance: 5,
+      vibration: true,
+      lights: true,
+      lightColor: '#C57C5A',
+      visibility: 1,
+    })
+  }
+
+  await LocalNotifications.registerActionTypes({
+    types: [{
+      id: MEDICATION_ACTION_TYPE_ID,
+      actions: [
+        { id: MEDICATION_TAKEN_ACTION, title: 'Mark taken' },
+        { id: MEDICATION_SNOOZE_ACTION, title: `Snooze ${SNOOZE_MINUTES} min` },
+      ],
+    }],
+  })
+}
+
 function upcomingNotifications(
   medications: Medication[],
   logs: Record<string, DoseLog>,
   appointments: Appointment[],
+  snoozedUntil: Record<string, number>,
 ): LocalNotificationSchema[] {
   const now = new Date()
   const usedIds = new Set<number>()
@@ -62,17 +115,32 @@ function upcomingNotifications(
 
     for (const occurrence of occurrencesForDate(medications, logs, dateKey)) {
       const at = dateAt(dateKey, occurrence.time)
-      if (at <= now) continue
-      notifications.push({
-        id: notificationId(`dose:${occurrence.key}`, usedIds),
-        title: `${occurrence.medication.name} — ${occurrence.medication.dosage}`,
-        body: `Scheduled for ${occurrence.time}`,
-        schedule: { at, allowWhileIdle: true },
-        extra: { kind: 'dose', key: occurrence.key },
-        foreground: false,
-        when: at.getTime(),
-      })
+      const snoozeAt = snoozedUntil[occurrence.key]
+      const isSnoozed = typeof snoozeAt === 'number' && snoozeAt > now.getTime()
+      const effectiveAt = isSnoozed ? new Date(snoozeAt) : at
+      if (effectiveAt <= now) continue
+      notifications.push(medicationNotification(
+        occurrence,
+        effectiveAt,
+        isSnoozed ? `snooze:${occurrence.key}` : `dose:${occurrence.key}`,
+        usedIds,
+      ))
     }
+  }
+
+  // A late-night snooze can cross midnight, placing its original occurrence
+  // outside the rolling window above. Keep that follow-up notification intact.
+  for (const [key, snoozeAt] of Object.entries(snoozedUntil)) {
+    if (snoozeAt <= now.getTime() || notifications.some((notification) => notification.extra?.key === key)) continue
+    const [medicationId, date, time] = key.split('__')
+    const medication = medications.find((med) => med.id === medicationId && med.active)
+    if (!medication || !time) continue
+    notifications.push(medicationNotification(
+      { key, medication, date, time, status: 'pending' },
+      new Date(snoozeAt),
+      `snooze:${key}`,
+      usedIds,
+    ))
   }
 
   for (const appointment of appointments) {
@@ -106,6 +174,7 @@ export function syncLocalNotifications(
   medications: Medication[],
   logs: Record<string, DoseLog>,
   appointments: Appointment[],
+  snoozedUntil: Record<string, number>,
 ): Promise<void> {
   if (!Capacitor.isNativePlatform()) return Promise.resolve()
 
@@ -116,12 +185,14 @@ export function syncLocalNotifications(
       : await LocalNotifications.requestPermissions()
     if (granted.display !== 'granted') return
 
+    await configureMedicationNotifications()
+
     const previousIds = storedIds()
     if (previousIds.length > 0) {
       await LocalNotifications.cancel({ notifications: previousIds.map((id) => ({ id })) })
     }
 
-    const notifications = upcomingNotifications(medications, logs, appointments)
+    const notifications = upcomingNotifications(medications, logs, appointments, snoozedUntil)
     if (notifications.length > 0) await LocalNotifications.schedule({ notifications })
     saveIds(notifications.map((notification) => notification.id))
   })
