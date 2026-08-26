@@ -1,0 +1,90 @@
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-display: 'Fraunces', serif;
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+
+  --color-void: #101116;
+  --color-surface: #191b21;
+  --color-surface-raised: #21232b;
+  --color-hairline: #2b2e37;
+  --color-hairline-soft: #23252d;
+  --color-ink: #e8e5de;
+  --color-ink-dim: #8f8c86;
+  --color-ink-faint: #5c5a56;
+  --color-sage: #93a38c;
+  --color-sage-dim: #6f7d6a;
+  --color-clay: #ab8271;
+  --color-clay-dim: #7d6259;
+  --color-dusk: #7c89a3;
+  --color-dusk-dim: #5c667a;
+
+  /* high-visibility status signals (calendar indicator dots) */
+  --color-signal-yellow: #ffd60a;
+  --color-signal-green: #32d74b;
+  --color-signal-red: #ff453a;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--color-void);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: rgba(147, 163, 140, 0.25);
+  color: var(--color-ink);
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-hairline);
+  border-radius: 999px;
+  border: 2px solid var(--color-void);
+}
+
+:focus-visible {
+  outline: 1.5px solid var(--color-sage);
+  outline-offset: 2px;
+}
+
+@keyframes pulse-ring {
+  0% { box-shadow: 0 0 0 0 rgba(171, 130, 113, 0.35); }
+  100% { box-shadow: 0 0 0 10px rgba(171, 130, 113, 0); }
+}
+.animate-pulse-ring {
+  animation: pulse-ring 2s ease-out infinite;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in {
+  animation: fade-in 0.25s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-pulse-ring, .animate-fade-in {
+    animation: none;
+  }
+}
