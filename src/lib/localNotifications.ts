@@ -14,8 +14,14 @@ export const SNOOZE_MINUTES = 10
 export const MEDICATION_TAKEN_ACTION = 'medication-taken'
 export const MEDICATION_SNOOZE_ACTION = 'medication-snooze-10'
 
-const MEDICATION_CHANNEL_ID = 'medication-reminders'
+// Android notification-channel sound settings cannot be changed after a
+// channel has been created. A new ID lets existing installs receive the new
+// reminder sound without touching a channel the user may have customised.
+const MEDICATION_CHANNEL_ID = 'medication-reminders-v2'
 const MEDICATION_ACTION_TYPE_ID = 'medication-actions'
+const MEDICATION_SOUND = Capacitor.getPlatform() === 'android'
+  ? 'medtrak_reminder.wav'
+  : 'medtrak-reminder.wav'
 
 function storedIds(): number[] {
   try {
@@ -68,6 +74,9 @@ function medicationNotification(
     extra: { kind: 'dose', key: occurrence.key },
     actionTypeId: MEDICATION_ACTION_TYPE_ID,
     channelId: MEDICATION_CHANNEL_ID,
+    // iOS requires an explicit sound on each local notification. Android 8+
+    // uses the sound configured on the notification channel below.
+    sound: MEDICATION_SOUND,
     // On Android this raises the notification priority so it can appear as a heads-up alert.
     foreground: true,
     when: at.getTime(),
@@ -80,6 +89,7 @@ async function configureMedicationNotifications(language: Language): Promise<voi
       id: MEDICATION_CHANNEL_ID,
       name: translate(language, 'medicationReminders'),
       description: translate(language, 'medicationReminderDescription'),
+      sound: MEDICATION_SOUND,
       importance: 5,
       vibration: true,
       lights: true,
