@@ -13,6 +13,7 @@ import {
 } from 'date-fns'
 import type { Appointment, DoseLog, DoseStatus, Medication } from '../types'
 import { adherenceForDate, appointmentsForDate, occurrencesForDate, toDateKey } from '../lib/schedule'
+import { useI18n } from '../lib/i18n'
 
 interface Props {
   medications: Medication[]
@@ -31,12 +32,14 @@ export default function CalendarView({
   onAddAppointment,
   onEditAppointment,
 }: Props) {
+  const { language, locale, t } = useI18n()
   const [cursor, setCursor] = useState(new Date())
   const [selectedDate, setSelectedDate] = useState<string>(toDateKey(new Date()))
 
   const days = useMemo(() => {
-    const start = startOfWeek(startOfMonth(cursor))
-    const end = endOfWeek(endOfMonth(cursor))
+    const weekStartsOn = language === 'sr-Latn' ? 1 : 0
+    const start = startOfWeek(startOfMonth(cursor), { weekStartsOn })
+    const end = endOfWeek(endOfMonth(cursor), { weekStartsOn })
     const out: Date[] = []
     let d = start
     while (d <= end) {
@@ -44,7 +47,13 @@ export default function CalendarView({
       d = new Date(d.getTime() + 86400000)
     }
     return out
-  }, [cursor])
+  }, [cursor, language])
+
+  const weekdayLabels = Array.from({ length: 7 }, (_, index) => {
+    const firstDay = language === 'sr-Latn' ? 2 : 1
+    return new Intl.DateTimeFormat(locale, { weekday: 'narrow' }).format(new Date(2023, 0, firstDay + index))
+  })
+  const monthLabel = new Intl.DateTimeFormat(locale, { month: 'long', year: 'numeric' }).format(cursor)
 
   const selectedOccurrences = occurrencesForDate(medications, logs, selectedDate)
   const selectedAppointments = appointmentsForDate(appointments, selectedDate)
@@ -52,7 +61,7 @@ export default function CalendarView({
   return (
     <div className="max-w-3xl mx-auto px-6 md:px-10 py-10 md:py-14">
       <div className="flex items-center justify-between mb-8">
-        <h1 className="font-display text-3xl text-ink">Calendar</h1>
+        <h1 className="font-display text-3xl text-ink">{t('calendar')}</h1>
         <div className="flex items-center gap-3">
           <button
             onClick={() => setCursor((c) => addMonths(c, -1))}
@@ -60,7 +69,7 @@ export default function CalendarView({
           >
             <ChevronLeft size={17} strokeWidth={1.5} />
           </button>
-          <span className="text-sm text-ink-dim font-mono w-32 text-center">{format(cursor, 'MMMM yyyy')}</span>
+          <span className="text-sm text-ink-dim font-mono w-32 text-center">{monthLabel}</span>
           <button
             onClick={() => setCursor((c) => addMonths(c, 1))}
             className="text-ink-faint hover:text-ink transition-colors p-1"
@@ -71,7 +80,7 @@ export default function CalendarView({
       </div>
 
       <div className="grid grid-cols-7 gap-px bg-hairline-soft border border-hairline-soft rounded-lg overflow-hidden">
-        {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => (
+        {weekdayLabels.map((d, i) => (
           <div key={i} className="bg-void text-center text-[11px] font-mono text-ink-faint py-2 uppercase">
             {d}
           </div>
@@ -119,12 +128,12 @@ export default function CalendarView({
       <div className="mt-10">
         <div className="flex items-baseline gap-2 mb-4">
           <h2 className="font-display text-lg text-ink">
-            {isSameDay(new Date(selectedDate + 'T00:00:00'), new Date()) ? 'Today' : format(new Date(selectedDate + 'T00:00:00'), 'EEEE, MMMM d')}
+            {isSameDay(new Date(selectedDate + 'T00:00:00'), new Date()) ? t('today') : new Intl.DateTimeFormat(locale, { weekday: 'long', month: 'long', day: 'numeric' }).format(new Date(selectedDate + 'T00:00:00'))}
           </h2>
         </div>
 
         {selectedOccurrences.length === 0 ? (
-          <p className="text-sm text-ink-faint">Nothing scheduled.</p>
+          <p className="text-sm text-ink-faint">{t('nothingScheduled')}</p>
         ) : (
           <div className="flex flex-col divide-y divide-hairline-soft border-t border-b border-hairline-soft">
             {selectedOccurrences.map((o) => (
@@ -161,7 +170,7 @@ export default function CalendarView({
                       onClick={() => onSetStatus(o.key, 'pending')}
                       className="text-xs text-ink-faint hover:text-ink-dim transition-colors font-mono"
                     >
-                      undo
+                      {t('undo')}
                     </button>
                   )}
                 </div>
@@ -173,17 +182,17 @@ export default function CalendarView({
 
       <div className="mt-10">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="font-display text-lg text-ink">Appointments</h2>
+          <h2 className="font-display text-lg text-ink">{t('appointments')}</h2>
           <button
             onClick={() => onAddAppointment(selectedDate)}
             className="flex items-center gap-1.5 text-xs text-dusk hover:text-ink transition-colors"
           >
-            <Plus size={13} strokeWidth={1.5} /> Add
+            <Plus size={13} strokeWidth={1.5} /> {t('add')}
           </button>
         </div>
 
         {selectedAppointments.length === 0 ? (
-          <p className="text-sm text-ink-faint">No appointments this day.</p>
+          <p className="text-sm text-ink-faint">{t('noAppointmentsThisDay')}</p>
         ) : (
           <div className="flex flex-col divide-y divide-hairline-soft border-t border-b border-hairline-soft">
             {selectedAppointments.map((appt) => (

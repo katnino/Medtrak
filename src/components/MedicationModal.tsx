@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { X, Plus, Trash2 } from 'lucide-react'
 import type { Medication } from '../types'
 import { toDateKey } from '../lib/schedule'
+import { useI18n } from '../lib/i18n'
 
 interface Props {
   initial: Medication | null
@@ -30,6 +31,7 @@ function blankMedication(): Medication {
 }
 
 export default function MedicationModal({ initial, onSave, onDelete, onClose }: Props) {
+  const { locale, t } = useI18n()
   const [med, setMed] = useState<Medication>(initial ?? blankMedication())
   const isNew = !initial
 
@@ -55,7 +57,7 @@ export default function MedicationModal({ initial, onSave, onDelete, onClose }: 
     <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center bg-void/70 backdrop-blur-sm animate-fade-in">
       <div className="w-full md:max-w-lg md:rounded-xl rounded-t-xl bg-surface border border-hairline max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between px-6 py-5 border-b border-hairline-soft sticky top-0 bg-surface">
-          <h2 className="font-display text-xl text-ink">{isNew ? 'Add medication' : 'Edit medication'}</h2>
+          <h2 className="font-display text-xl text-ink">{isNew ? t('addMedication') : t('editMedication')}</h2>
           <button onClick={onClose} className="text-ink-faint hover:text-ink transition-colors">
             <X size={18} strokeWidth={1.5} />
           </button>
@@ -63,27 +65,27 @@ export default function MedicationModal({ initial, onSave, onDelete, onClose }: 
 
         <div className="px-6 py-6 flex flex-col gap-5">
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs text-ink-dim font-mono uppercase tracking-wide">Name</label>
+            <label className="text-xs text-ink-dim font-mono uppercase tracking-wide">{t('name')}</label>
             <input
               value={med.name}
               onChange={(e) => setMed((m) => ({ ...m, name: e.target.value }))}
-              placeholder="e.g. Lisinopril"
+              placeholder={t('medicationNameExample')}
               className="bg-void border border-hairline rounded-md px-3 py-2.5 text-sm text-ink placeholder:text-ink-faint focus:border-sage-dim outline-none"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs text-ink-dim font-mono uppercase tracking-wide">Dosage</label>
+              <label className="text-xs text-ink-dim font-mono uppercase tracking-wide">{t('dosage')}</label>
               <input
                 value={med.dosage}
                 onChange={(e) => setMed((m) => ({ ...m, dosage: e.target.value }))}
-                placeholder="e.g. 10mg"
+                placeholder={t('dosageExample')}
                 className="bg-void border border-hairline rounded-md px-3 py-2.5 text-sm text-ink placeholder:text-ink-faint focus:border-sage-dim outline-none"
               />
             </div>
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs text-ink-dim font-mono uppercase tracking-wide">Form</label>
+              <label className="text-xs text-ink-dim font-mono uppercase tracking-wide">{t('form')}</label>
               <select
                 value={med.form}
                 onChange={(e) => setMed((m) => ({ ...m, form: e.target.value as Medication['form'] }))}
@@ -91,7 +93,7 @@ export default function MedicationModal({ initial, onSave, onDelete, onClose }: 
               >
                 {FORMS.map((f) => (
                   <option key={f} value={f} className="bg-surface">
-                    {f}
+                    {t(`form${f[0].toUpperCase()}${f.slice(1)}` as 'formPill')}
                   </option>
                 ))}
               </select>
@@ -99,12 +101,12 @@ export default function MedicationModal({ initial, onSave, onDelete, onClose }: 
           </div>
 
           <div className="flex flex-col gap-2">
-            <label className="text-xs text-ink-dim font-mono uppercase tracking-wide">Reminder times</label>
-            {med.times.map((t, idx) => (
+            <label className="text-xs text-ink-dim font-mono uppercase tracking-wide">{t('reminderTimes')}</label>
+            {med.times.map((time, idx) => (
               <div key={idx} className="flex items-center gap-2">
                 <input
                   type="time"
-                  value={t}
+                  value={time}
                   onChange={(e) => updateTime(idx, e.target.value)}
                   className="bg-void border border-hairline rounded-md px-3 py-2 text-sm text-ink font-mono outline-none focus:border-sage-dim flex-1"
                 />
@@ -112,7 +114,7 @@ export default function MedicationModal({ initial, onSave, onDelete, onClose }: 
                   <button
                     onClick={() => removeTime(idx)}
                     className="text-ink-faint hover:text-clay transition-colors p-1.5"
-                    aria-label="Remove time"
+                    aria-label={t('removeTime')}
                   >
                     <Trash2 size={14} strokeWidth={1.5} />
                   </button>
@@ -123,14 +125,14 @@ export default function MedicationModal({ initial, onSave, onDelete, onClose }: 
               onClick={addTime}
               className="self-start flex items-center gap-1.5 text-xs text-sage hover:text-ink transition-colors mt-1"
             >
-              <Plus size={13} strokeWidth={1.5} /> Add another time
+              <Plus size={13} strokeWidth={1.5} /> {t('addAnotherTime')}
             </button>
           </div>
 
           <div className="flex flex-col gap-2">
-            <label className="text-xs text-ink-dim font-mono uppercase tracking-wide">Repeats on</label>
+            <label className="text-xs text-ink-dim font-mono uppercase tracking-wide">{t('repeatsOn')}</label>
             <div className="flex gap-1.5">
-              {DAY_LABELS.map((label, d) => {
+              {DAY_LABELS.map((_, d) => {
                 const on = med.daysOfWeek.includes(d)
                 return (
                   <button
@@ -142,19 +144,19 @@ export default function MedicationModal({ initial, onSave, onDelete, onClose }: 
                         : 'border-hairline text-ink-faint hover:text-ink-dim'
                     }`}
                   >
-                    {label}
+                    {new Intl.DateTimeFormat(locale, { weekday: 'narrow' }).format(new Date(2023, 0, 1 + d))}
                   </button>
                 )
               })}
             </div>
             <span className="text-xs text-ink-faint">
-              {med.daysOfWeek.length === 0 ? 'Every day' : 'Selected days only'}
+              {med.daysOfWeek.length === 0 ? t('everyDay') : t('selectedDaysOnly')}
             </span>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs text-ink-dim font-mono uppercase tracking-wide">Start date</label>
+              <label className="text-xs text-ink-dim font-mono uppercase tracking-wide">{t('startDate')}</label>
               <input
                 type="date"
                 value={med.startDate}
@@ -163,7 +165,7 @@ export default function MedicationModal({ initial, onSave, onDelete, onClose }: 
               />
             </div>
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs text-ink-dim font-mono uppercase tracking-wide">End date (optional)</label>
+              <label className="text-xs text-ink-dim font-mono uppercase tracking-wide">{t('endDateOptional')}</label>
               <input
                 type="date"
                 value={med.endDate ?? ''}
@@ -174,12 +176,12 @@ export default function MedicationModal({ initial, onSave, onDelete, onClose }: 
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs text-ink-dim font-mono uppercase tracking-wide">Notes (optional)</label>
+            <label className="text-xs text-ink-dim font-mono uppercase tracking-wide">{t('notesOptional')}</label>
             <textarea
               value={med.notes}
               onChange={(e) => setMed((m) => ({ ...m, notes: e.target.value }))}
               rows={2}
-              placeholder="Take with food, avoid grapefruit, etc."
+              placeholder={t('medicationNotesPlaceholder')}
               className="bg-void border border-hairline rounded-md px-3 py-2.5 text-sm text-ink placeholder:text-ink-faint outline-none focus:border-sage-dim resize-none"
             />
           </div>
@@ -191,7 +193,7 @@ export default function MedicationModal({ initial, onSave, onDelete, onClose }: 
               onChange={(e) => setMed((m) => ({ ...m, active: e.target.checked }))}
               className="accent-[var(--color-sage-dim)]"
             />
-            Active — include in reminders and calendar
+            {t('activeReminder')}
           </label>
         </div>
 
@@ -201,21 +203,21 @@ export default function MedicationModal({ initial, onSave, onDelete, onClose }: 
               onClick={() => onDelete(med.id)}
               className="text-xs text-clay hover:text-ink transition-colors"
             >
-              Delete medication
+              {t('deleteMedication')}
             </button>
           ) : (
             <span />
           )}
           <div className="flex items-center gap-3">
             <button onClick={onClose} className="text-sm text-ink-dim hover:text-ink transition-colors px-3 py-2">
-              Cancel
+              {t('cancel')}
             </button>
             <button
               disabled={!valid}
               onClick={() => onSave(med)}
               className="text-sm bg-sage-dim/25 border border-sage-dim text-sage hover:bg-sage-dim/35 transition-colors px-4 py-2 rounded-md disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              {isNew ? 'Add medication' : 'Save changes'}
+              {isNew ? t('addMedication') : t('saveChanges')}
             </button>
           </div>
         </div>

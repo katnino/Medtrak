@@ -1,4 +1,5 @@
 import type { DoseOccurrence } from '../types'
+import { useI18n } from '../lib/i18n'
 
 interface Props {
   occurrences: DoseOccurrence[]
@@ -27,6 +28,7 @@ function pointOnRing(angleDeg: number, r = RADIUS) {
 }
 
 export default function DoseRing({ occurrences, now, onSelect, selectedKey }: Props) {
+  const { t } = useI18n()
   const nowAngle = timeToAngle(`${now.getHours()}:${now.getMinutes()}`)
   const nowPoint = pointOnRing(nowAngle, RADIUS + 14)
 
@@ -119,10 +121,10 @@ export default function DoseRing({ occurrences, now, onSelect, selectedKey }: Pr
 
       <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-16">
         <span className="font-mono text-[11px] tracking-widest text-ink-dim uppercase">
-          {total === 0 ? 'No doses today' : `${taken} of ${total} taken`}
+          {total === 0 ? t('noDosesToday') : t('dosesTaken', { taken, total })}
         </span>
         <span className="font-display text-2xl mt-2 leading-tight text-ink">
-          {nextDue ? nextDue.medication.name : total > 0 ? 'All set' : ''}
+          {nextDue ? nextDue.medication.name : total > 0 ? t('allSet') : ''}
         </span>
         {nextDue && (
           <span className="font-mono text-xs text-clay mt-1">{nextDue.time}</span>

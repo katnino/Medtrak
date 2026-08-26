@@ -1,6 +1,7 @@
 import { Capacitor } from '@capacitor/core'
 import { LocalNotifications, type LocalNotificationSchema } from '@capacitor/local-notifications'
 import { occurrencesForDate, toDateKey } from './schedule'
+import { translate, type Language } from './i18n'
 import type { Appointment, DoseLog, DoseOccurrence, Medication } from '../types'
 
 const SCHEDULED_IDS_KEY = 'medtrak.localNotificationIds'
@@ -57,11 +58,12 @@ function medicationNotification(
   at: Date,
   idKey: string,
   usedIds: Set<number>,
+  language: Language,
 ): LocalNotificationSchema & { when: number } {
   return {
     id: notificationId(idKey, usedIds),
-    title: `Medication due: ${occurrence.medication.name}`,
-    body: `${occurrence.medication.dosage} · Scheduled for ${occurrence.time}`,
+    title: translate(language, 'medicationDue', { name: occurrence.medication.name }),
+    body: `${occurrence.medication.dosage} · ${translate(language, 'scheduledFor', { time: occurrence.time })}`,
     schedule: { at, allowWhileIdle: true },
     extra: { kind: 'dose', key: occurrence.key },
     actionTypeId: MEDICATION_ACTION_TYPE_ID,
@@ -72,12 +74,12 @@ function medicationNotification(
   }
 }
 
-async function configureMedicationNotifications(): Promise<void> {
+async function configureMedicationNotifications(language: Language): Promise<void> {
   if (Capacitor.getPlatform() === 'android') {
     await LocalNotifications.createChannel({
       id: MEDICATION_CHANNEL_ID,
-      name: 'Medication reminders',
-      description: 'Time-sensitive reminders to take medication',
+      name: translate(language, 'medicationReminders'),
+      description: translate(language, 'medicationReminderDescription'),
       importance: 5,
       vibration: true,
       lights: true,
@@ -90,8 +92,8 @@ async function configureMedicationNotifications(): Promise<void> {
     types: [{
       id: MEDICATION_ACTION_TYPE_ID,
       actions: [
-        { id: MEDICATION_TAKEN_ACTION, title: 'Mark taken' },
-        { id: MEDICATION_SNOOZE_ACTION, title: `Snooze ${SNOOZE_MINUTES} min` },
+        { id: MEDICATION_TAKEN_ACTION, title: translate(language, 'markTaken') },
+        { id: MEDICATION_SNOOZE_ACTION, title: translate(language, 'snoozeMinutes', { minutes: SNOOZE_MINUTES }) },
       ],
     }],
   })
@@ -102,6 +104,7 @@ function upcomingNotifications(
   logs: Record<string, DoseLog>,
   appointments: Appointment[],
   snoozedUntil: Record<string, number>,
+  language: Language,
 ): LocalNotificationSchema[] {
   const now = new Date()
   const usedIds = new Set<number>()
@@ -124,6 +127,7 @@ function upcomingNotifications(
         effectiveAt,
         isSnoozed ? `snooze:${occurrence.key}` : `dose:${occurrence.key}`,
         usedIds,
+        language,
       ))
     }
   }
@@ -140,6 +144,7 @@ function upcomingNotifications(
       new Date(snoozeAt),
       `snooze:${key}`,
       usedIds,
+      language,
     ))
   }
 
@@ -150,7 +155,7 @@ function upcomingNotifications(
     notifications.push({
       id: notificationId(`appointment:${appointment.id}`, usedIds),
       title: appointment.title,
-      body: [appointment.provider, appointment.location].filter(Boolean).join(' · ') || `At ${appointment.time}`,
+      body: [appointment.provider, appointment.location].filter(Boolean).join(' · ') || translate(language, 'atTime', { time: appointment.time }),
       schedule: { at, allowWhileIdle: true },
       extra: { kind: 'appointment', id: appointment.id },
       foreground: false,
@@ -175,6 +180,7 @@ export function syncLocalNotifications(
   logs: Record<string, DoseLog>,
   appointments: Appointment[],
   snoozedUntil: Record<string, number>,
+  language: Language,
 ): Promise<void> {
   if (!Capacitor.isNativePlatform()) return Promise.resolve()
 
@@ -185,14 +191,14 @@ export function syncLocalNotifications(
       : await LocalNotifications.requestPermissions()
     if (granted.display !== 'granted') return
 
-    await configureMedicationNotifications()
+    await configureMedicationNotifications(language)
 
     const previousIds = storedIds()
     if (previousIds.length > 0) {
       await LocalNotifications.cancel({ notifications: previousIds.map((id) => ({ id })) })
     }
 
-    const notifications = upcomingNotifications(medications, logs, appointments, snoozedUntil)
+    const notifications = upcomingNotifications(medications, logs, appointments, snoozedUntil, language)
     if (notifications.length > 0) await LocalNotifications.schedule({ notifications })
     saveIds(notifications.map((notification) => notification.id))
   })

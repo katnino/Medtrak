@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Check, X as XIcon, Stethoscope } from 'lucide-react'
 import type { Appointment, DoseOccurrence, DoseStatus } from '../types'
 import DoseRing from './DoseRing'
+import { useI18n } from '../lib/i18n'
 
 interface Props {
   occurrences: DoseOccurrence[]
@@ -13,7 +14,8 @@ interface Props {
 
 export default function TodayView({ occurrences, appointments, now, onSetStatus, onEditAppointment }: Props) {
   const [selectedKey, setSelectedKey] = useState<string | null>(null)
-  const dateLabel = now.toLocaleDateString(undefined, {
+  const { locale, t } = useI18n()
+  const dateLabel = now.toLocaleDateString(locale, {
     weekday: 'long',
     month: 'long',
     day: 'numeric',
@@ -24,14 +26,14 @@ export default function TodayView({ occurrences, appointments, now, onSetStatus,
       <div className="mb-2">
         <span className="text-xs text-ink-faint font-mono uppercase tracking-widest">{dateLabel}</span>
       </div>
-      <h1 className="font-display text-3xl text-ink mb-8">Today</h1>
+      <h1 className="font-display text-3xl text-ink mb-8">{t('today')}</h1>
 
       <div className="flex justify-center mb-10">
         <DoseRing occurrences={occurrences} now={now} onSelect={setSelectedKey} selectedKey={selectedKey} />
       </div>
 
       {occurrences.length === 0 ? (
-        <p className="text-center text-sm text-ink-dim">Nothing scheduled for today.</p>
+        <p className="text-center text-sm text-ink-dim">{t('nothingScheduledToday')}</p>
       ) : (
         <div className="flex flex-col divide-y divide-hairline-soft border-t border-b border-hairline-soft">
           {occurrences.map((o) => {
@@ -71,7 +73,7 @@ export default function TodayView({ occurrences, appointments, now, onSetStatus,
                           onSetStatus(o.key, 'skipped')
                         }}
                         className="h-8 w-8 rounded-full border border-hairline text-ink-faint hover:text-clay hover:border-clay-dim transition-colors flex items-center justify-center"
-                        aria-label="Skip dose"
+                        aria-label={t('skipDose')}
                       >
                         <XIcon size={14} strokeWidth={1.5} />
                       </button>
@@ -81,7 +83,7 @@ export default function TodayView({ occurrences, appointments, now, onSetStatus,
                           onSetStatus(o.key, 'taken')
                         }}
                         className="h-8 w-8 rounded-full border border-sage-dim text-sage hover:bg-sage-dim/20 transition-colors flex items-center justify-center"
-                        aria-label="Mark taken"
+                        aria-label={t('markTaken')}
                       >
                         <Check size={14} strokeWidth={1.5} />
                       </button>
@@ -94,7 +96,7 @@ export default function TodayView({ occurrences, appointments, now, onSetStatus,
                       }}
                       className="text-xs text-ink-faint hover:text-ink-dim transition-colors font-mono"
                     >
-                      undo
+                      {t('undo')}
                     </button>
                   )}
                 </div>
@@ -106,7 +108,7 @@ export default function TodayView({ occurrences, appointments, now, onSetStatus,
 
       {appointments.length > 0 && (
         <div className="mt-10">
-          <h2 className="font-display text-lg text-ink mb-4">Appointments today</h2>
+          <h2 className="font-display text-lg text-ink mb-4">{t('appointmentsToday')}</h2>
           <div className="flex flex-col divide-y divide-hairline-soft border-t border-b border-hairline-soft">
             {appointments.map((appt) => (
               <button

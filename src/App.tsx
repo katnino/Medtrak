@@ -8,6 +8,7 @@ import AppointmentModal from './components/AppointmentModal'
 import AlarmOverlay from './components/AlarmOverlay'
 import AppointmentAlarmOverlay from './components/AppointmentAlarmOverlay'
 import { useLocalStorage } from './lib/storage'
+import { LanguageProvider, type Language } from './lib/i18n'
 import { appointmentsForDate, occurrencesForDate, toDateKey } from './lib/schedule'
 import { playChime, requestNotificationPermission, sendBrowserNotification } from './lib/notify'
 import { Capacitor } from '@capacitor/core'
@@ -27,6 +28,7 @@ export default function App() {
   const [appointments, setAppointments] = useLocalStorage<Appointment[]>('medtrak.appointments', [])
   const [firedAlarms, setFiredAlarms] = useLocalStorage<Record<string, boolean>>('medtrak.fired', {})
   const [snoozedUntil, setSnoozedUntil] = useLocalStorage<Record<string, number>>('medtrak.snoozedUntil', {})
+  const [language, setLanguage] = useLocalStorage<Language>('medtrak.language', 'en')
 
   const [modalMed, setModalMed] = useState<Medication | null | undefined>(undefined) // undefined = closed
   const [modalAppt, setModalAppt] = useState<
@@ -52,8 +54,8 @@ export default function App() {
   // Native builds keep a rolling, on-device notification schedule. The helper
   // is a no-op on the web, where the existing in-tab reminder engine remains.
   useEffect(() => {
-    void syncLocalNotifications(medications, logs, appointments, snoozedUntil)
-  }, [medications, logs, appointments, snoozedUntil])
+    void syncLocalNotifications(medications, logs, appointments, snoozedUntil, language)
+  }, [medications, logs, appointments, snoozedUntil, language])
 
   // reminder engine — checks every 20s for newly-due, un-acted doses & appointments
   const alarmingKeys = useRef(new Set(alarmQueue.map((o) => o.key)))
@@ -87,7 +89,7 @@ export default function App() {
           return next
         })
         due.forEach((o) => {
-          sendBrowserNotification(`${o.medication.name} — ${o.medication.dosage}`, `Scheduled for ${o.time}`)
+          sendBrowserNotification(`${o.medication.name} — ${o.medication.dosage}`, language === 'sr-Latn' ? `Zakazano za ${o.time}` : `Scheduled for ${o.time}`)
         })
         playChime()
       }
@@ -109,7 +111,7 @@ export default function App() {
           return next
         })
         dueAppts.forEach((a) => {
-          sendBrowserNotification(a.title, [a.provider, a.location].filter(Boolean).join(' · ') || `At ${a.time}`)
+          sendBrowserNotification(a.title, [a.provider, a.location].filter(Boolean).join(' · ') || (language === 'sr-Latn' ? `U ${a.time}` : `At ${a.time}`))
         })
         playChime()
       }
@@ -119,7 +121,7 @@ export default function App() {
     const id = setInterval(check, 20_000)
     return () => clearInterval(id)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [medications, logs, appointments, firedAlarms, snoozedUntil])
+  }, [medications, logs, appointments, firedAlarms, snoozedUntil, language])
 
   const setStatus = (key: string, status: DoseStatus) => {
     const [medicationId, date, time] = key.split('__')
@@ -229,6 +231,7 @@ export default function App() {
   }
 
   return (
+    <LanguageProvider language={language} setLanguage={setLanguage}>
     <div className="min-h-screen flex flex-col md:flex-row bg-void">
       <Sidebar view={view} onChange={setView} medicationCount={activeMedications.length} />
 
@@ -293,5 +296,6 @@ export default function App() {
         <AppointmentAlarmOverlay appointment={currentApptAlarm} onAcknowledge={acknowledgeApptAlarm} />
       )}
     </div>
+    </LanguageProvider>
   )
 }
