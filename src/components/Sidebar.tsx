@@ -31,17 +31,26 @@ export default function Sidebar({ view, onChange, medicationCount }: Props) {
             <button
               key={id}
               onClick={() => onChange(id)}
-              className={`group flex items-center gap-3 px-4 py-2.5 rounded-md text-sm transition-colors w-full text-left ${
+              className={`group flex flex-1 md:flex-none items-center gap-0 md:gap-3 px-2 md:px-4 py-2.5 rounded-md text-xs md:text-sm transition-colors md:w-full text-center md:text-left ${
                 active
                   ? 'bg-surface text-ink'
                   : 'text-ink-dim hover:text-ink hover:bg-surface/60'
               }`}
             >
-              <Icon size={16} strokeWidth={1.5} className={active ? 'text-sage' : 'text-ink-faint group-hover:text-ink-dim'} />
-              <span>{t(label)}</span>
+              <Icon size={16} strokeWidth={1.5} className={`hidden md:block ${active ? 'text-sage' : 'text-ink-faint group-hover:text-ink-dim'}`} />
+              <span className="truncate">{t(label)}</span>
             </button>
           )
         })}
+        <button
+          type="button"
+          onClick={() => setLanguage(language === 'en' ? 'sr-Latn' : 'en')}
+          className="flex md:hidden flex-1 items-center justify-center px-2 py-2.5 rounded-md text-xs transition-colors text-ink-dim hover:text-ink hover:bg-surface"
+          aria-label={`${t('language')}: ${language === 'en' ? t('english') : t('serbianLatin')}`}
+          title={`${t('language')}: ${language === 'en' ? t('english') : t('serbianLatin')}`}
+        >
+          <span className="truncate">{t('language')}</span>
+        </button>
       </nav>
 
       <div className="hidden md:block mt-auto px-6 py-6 text-xs text-ink-faint font-mono border-t border-hairline-soft">
