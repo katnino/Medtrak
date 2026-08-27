@@ -1,0 +1,10 @@
+<resources>
+    <color name="color_void">#101116</color>
+    <color name="color_surface">#191B21</color>
+    <color name="color_sage">#93A38C</color>
+    <color name="color_clay">#AB8271</color>
+    <color name="color_dusk">#7C89A3</color>
+    <color name="color_signal_green">#32D74B</color>
+    <color name="color_signal_red">#FF453A</color>
+    <color name="color_signal_yellow">#FFD60A</color>
+</resources>

@@ -1,7 +1,7 @@
-import { CalendarDays, ListChecks, Sunrise } from 'lucide-react'
+import { CalendarDays, ListChecks, Sunrise, Settings } from 'lucide-react'
 import { useI18n } from '../lib/i18n'
 
-export type View = 'today' | 'calendar' | 'medications'
+export type View = 'today' | 'calendar' | 'medications' | 'settings'
 
 interface Props {
   view: View
@@ -9,10 +9,11 @@ interface Props {
   medicationCount: number
 }
 
-const items: { id: View; label: 'today' | 'calendar' | 'medications'; icon: typeof Sunrise }[] = [
+const items: { id: View; label: 'today' | 'calendar' | 'medications' | 'settings'; icon: typeof Sunrise }[] = [
   { id: 'today', label: 'today', icon: Sunrise },
   { id: 'calendar', label: 'calendar', icon: CalendarDays },
   { id: 'medications', label: 'medications', icon: ListChecks },
+  { id: 'settings', label: 'settings', icon: Settings },
 ]
 
 export default function Sidebar({ view, onChange, medicationCount }: Props) {

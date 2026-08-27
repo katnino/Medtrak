@@ -1,0 +1,13 @@
+<resources>
+    <!-- Full-screen alarm theme -->
+    <style name="Theme.Medtrak.FullScreenAlarm" parent="Theme.AppCompat.NoActionBar">
+        <item name="android:windowFullscreen">true</item>
+        <item name="android:windowContentOverlay">@null</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowIsFloating">false</item>
+        <item name="android:backgroundDimEnabled">false</item>
+        <item name="android:windowBackground">@color/color_void</item>
+        <item name="android:statusBarColor">@color/color_void</item>
+        <item name="android:navigationBarColor">@color/color_void</item>
+    </style>
+</resources>

@@ -8,6 +8,9 @@ const config: CapacitorConfig = {
     LocalNotifications: {
       presentationOptions: ['badge', 'sound', 'banner', 'list'],
     },
+    EnhancedReminders: {
+      // Custom plugin for enhanced medication reminders with full-screen alarms and TTS
+    },
   },
 };
 

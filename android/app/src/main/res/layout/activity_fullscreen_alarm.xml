@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="#101116"
+    android:gravity="center"
+    android:padding="24dp">
+
+    <!-- Medication Name -->
+    <TextView
+        android:id="@+id/medicationName"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Medication Name"
+        android:textSize="32sp"
+        android:textStyle="bold"
+        android:textColor="#E8E5DE"
+        android:gravity="center"
+        android:layout_marginBottom="8dp" />
+
+    <!-- Dosage -->
+    <TextView
+        android:id="@+id/dosageText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Dosage"
+        android:textSize="24sp"
+        android:textColor="#93A38C"
+        android:gravity="center"
+        android:layout_marginBottom="8dp" />
+
+    <!-- Time -->
+    <TextView
+        android:id="@+id/timeText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Scheduled for 08:00"
+        android:textSize="18sp"
+        android:textColor="#8F8C86"
+        android:gravity="center"
+        android:layout_marginBottom="32dp" />
+
+    <!-- Action Buttons -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:layout_marginTop="16dp">
+
+        <!-- Taken Button -->
+        <Button
+            android:id="@+id/btnTaken"
+            android:layout_width="0dp"
+            android:layout_height="56dp"
+            android:layout_weight="1"
+            android:layout_marginEnd="8dp"
+            android:text="Taken"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="#101116"
+            android:backgroundTint="#32D74B"
+            android:background="@drawable/btn_bg_primary" />
+
+        <!-- Skip Button -->
+        <Button
+            android:id="@+id/btnSkip"
+            android:layout_width="0dp"
+            android:layout_height="56dp"
+            android:layout_weight="1"
+            android:layout_marginStart="4dp"
+            android:layout_marginEnd="4dp"
+            android:text="Skip"
+            android:textSize="16sp"
+            android:textColor="#E8E5DE"
+            android:backgroundTint="#2B2E37"
+            android:background="@drawable/btn_bg_secondary" />
+
+        <!-- Snooze Button -->
+        <Button
+            android:id="@+id/btnSnooze"
+            android:layout_width="0dp"
+            android:layout_height="56dp"
+            android:layout_weight="1"
+            android:layout_marginStart="8dp"
+            android:text="Snooze 10 min"
+            android:textSize="16sp"
+            android:textColor="#E8E5DE"
+            android:backgroundTint="#7C89A3"
+            android:background="@drawable/btn_bg_secondary" />
+
+    </LinearLayout>
+
+</LinearLayout>

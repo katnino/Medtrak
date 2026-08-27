@@ -24,6 +24,29 @@
 
         </activity>
 
+        <!-- Full-screen alarm activity for enhanced reminders -->
+        <activity
+            android:name=".enhancedreminders.FullScreenAlarmActivity"
+            android:theme="@style/Theme.Medtrak.FullScreenAlarm"
+            android:exported="false"
+            android:launchMode="singleInstance"
+            android:excludeFromRecents="true"
+            android:taskAffinity=""
+            android:showForAllUsers="true"
+            android:turnScreenOn="true" />
+
+        <!-- Receiver for alarm triggers and boot completion -->
+        <receiver
+            android:name=".enhancedreminders.EnhancedRemindersReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.QUICKBOOT_POWERON" />
+                <action android:name="com.medtrak.app.ENHANCED_REMINDER_TRIGGER" />
+                <action android:name="com.medtrak.app.ENHANCED_REMINDER_ACTION" />
+            </intent-filter>
+        </receiver>
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"
@@ -40,4 +63,20 @@
     <!-- Required on Android 12+ to keep medication reminders exact. Users can
          still turn this access off in the system's Alarms & reminders screen. -->
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    
+    <!-- Required for Android 13+ to show notifications -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    
+    <!-- Required for foreground service (used by exact alarms) -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+    
+    <!-- Required to wake device and show full-screen alarm -->
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    
+    <!-- Required to receive boot completed for rescheduling alarms -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    
+    <!-- Required for full-screen intent on lock screen (Android 10+) -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
 </manifest>

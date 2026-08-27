@@ -3,6 +3,7 @@ import Sidebar, { type View } from './components/Sidebar'
 import TodayView from './components/TodayView'
 import CalendarView from './components/CalendarView'
 import MedicationsView from './components/MedicationsView'
+import SettingsView from './components/SettingsView'
 import MedicationModal from './components/MedicationModal'
 import AppointmentModal from './components/AppointmentModal'
 import AlarmOverlay from './components/AlarmOverlay'
@@ -19,7 +20,7 @@ import {
   SNOOZE_MINUTES,
   syncLocalNotifications,
 } from './lib/localNotifications'
-import type { Appointment, DoseLog, DoseOccurrence, DoseStatus, Medication } from './types'
+import type { Appointment, DoseLog, DoseOccurrence, DoseStatus, Medication, EnhancedReminderSettings } from './types'
 
 export default function App() {
   const [view, setView] = useState<View>('today')
@@ -29,6 +30,7 @@ export default function App() {
   const [firedAlarms, setFiredAlarms] = useLocalStorage<Record<string, boolean>>('medtrak.fired', {})
   const [snoozedUntil, setSnoozedUntil] = useLocalStorage<Record<string, number>>('medtrak.snoozedUntil', {})
   const [language, setLanguage] = useLocalStorage<Language>('medtrak.language', 'en')
+  const [enhancedReminders, setEnhancedReminders] = useLocalStorage<EnhancedReminderSettings>('medtrak.enhancedReminders', { enabled: false })
 
   const [modalMed, setModalMed] = useState<Medication | null | undefined>(undefined) // undefined = closed
   const [modalAppt, setModalAppt] = useState<
@@ -54,8 +56,8 @@ export default function App() {
   // Native builds keep a rolling, on-device notification schedule. The helper
   // is a no-op on the web, where the existing in-tab reminder engine remains.
   useEffect(() => {
-    void syncLocalNotifications(medications, logs, appointments, snoozedUntil, language)
-  }, [medications, logs, appointments, snoozedUntil, language])
+    void syncLocalNotifications(medications, logs, appointments, snoozedUntil, language, enhancedReminders.enabled)
+  }, [medications, logs, appointments, snoozedUntil, language, enhancedReminders.enabled])
 
   // reminder engine — checks every 20s for newly-due, un-acted doses & appointments
   const alarmingKeys = useRef(new Set(alarmQueue.map((o) => o.key)))
@@ -260,6 +262,12 @@ export default function App() {
             medications={medications}
             onAdd={() => setModalMed(null)}
             onEdit={(med) => setModalMed(med)}
+          />
+        )}
+        {view === 'settings' && (
+          <SettingsView
+            enhancedReminders={enhancedReminders}
+            setEnhancedReminders={setEnhancedReminders}
           />
         )}
       </main>

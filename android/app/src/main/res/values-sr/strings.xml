@@ -1,0 +1,14 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Medtrak</string>
+    <string name="title_activity_main">Medtrak</string>
+    <string name="package_name">com.medtrak.app</string>
+    <string name="custom_url_scheme">com.medtrak.app</string>
+
+    <!-- Enhanced Reminders strings (Serbian Latin) -->
+    <string name="medication_due">Lek je u pitanju</string>
+    <string name="scheduled_for">Zakazano za</string>
+    <string name="mark_taken">Uzeto</string>
+    <string name="skip">Preskoči</string>
+    <string name="snooze_10min">Odloži 10 min</string>
+</resources>

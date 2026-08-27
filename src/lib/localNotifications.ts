@@ -3,6 +3,7 @@ import { LocalNotifications, type LocalNotificationSchema } from '@capacitor/loc
 import { occurrencesForDate, toDateKey } from './schedule'
 import { translate, type Language } from './i18n'
 import type { Appointment, DoseLog, DoseOccurrence, Medication } from '../types'
+import type { EnhancedReminderPlugin, ScheduleEnhancedReminderOptions } from './enhancedRemindersPlugin'
 
 const SCHEDULED_IDS_KEY = 'medtrak.localNotificationIds'
 const LOOK_AHEAD_DAYS = 30
@@ -53,7 +54,7 @@ function notificationId(key: string, used: Set<number>): number {
   return id
 }
 
-function dateAt(dateKey: string, time: string): Date {
+export function dateAt(dateKey: string, time: string): Date {
   const [year, month, day] = dateKey.split('-').map(Number)
   const [hours, minutes] = time.split(':').map(Number)
   return new Date(year, month - 1, day, hours, minutes)
@@ -109,7 +110,7 @@ async function configureMedicationNotifications(language: Language): Promise<voi
   })
 }
 
-function upcomingNotifications(
+export function upcomingNotifications(
   medications: Medication[],
   logs: Record<string, DoseLog>,
   appointments: Appointment[],
@@ -191,8 +192,14 @@ export function syncLocalNotifications(
   appointments: Appointment[],
   snoozedUntil: Record<string, number>,
   language: Language,
+  enhancedRemindersEnabled: boolean = false,
 ): Promise<void> {
   if (!Capacitor.isNativePlatform()) return Promise.resolve()
+
+  // If enhanced reminders are enabled on Android, use the custom plugin
+  if (enhancedRemindersEnabled && Capacitor.getPlatform() === 'android') {
+    return syncEnhancedReminders(medications, logs, appointments, snoozedUntil, language)
+  }
 
   syncQueue = syncQueue.catch(() => undefined).then(async () => {
     const permission = await LocalNotifications.checkPermissions()
@@ -211,6 +218,140 @@ export function syncLocalNotifications(
     const notifications = upcomingNotifications(medications, logs, appointments, snoozedUntil, language)
     if (notifications.length > 0) await LocalNotifications.schedule({ notifications })
     saveIds(notifications.map((notification) => notification.id))
+  })
+
+  return syncQueue
+}
+
+// Enhanced reminders sync using custom Capacitor plugin
+async function syncEnhancedReminders(
+  medications: Medication[],
+  logs: Record<string, DoseLog>,
+  appointments: Appointment[],
+  snoozedUntil: Record<string, number>,
+  language: Language,
+): Promise<void> {
+  syncQueue = syncQueue.catch(() => undefined).then(async () => {
+    try {
+      // Dynamically import the plugin to avoid bundling issues on web
+      const { registerPlugin } = await import('@capacitor/core')
+      const EnhancedReminders = registerPlugin<EnhancedReminderPlugin>('EnhancedReminders', { web: () => null })
+      
+      if (!EnhancedReminders) {
+        console.warn('[EnhancedReminders] Plugin not available, falling back to standard notifications')
+        // Fall back to standard notifications for appointments only
+        const permission = await LocalNotifications.checkPermissions()
+        const granted = permission.display === 'granted'
+          ? permission
+          : await LocalNotifications.requestPermissions()
+        if (granted.display !== 'granted') return
+
+        await configureMedicationNotifications(language)
+
+        const previousIds = storedIds()
+        if (previousIds.length > 0) {
+          await LocalNotifications.cancel({ notifications: previousIds.map((id) => ({ id })) })
+        }
+
+        const notifications = upcomingNotifications(medications, logs, appointments, snoozedUntil, language)
+        if (notifications.length > 0) await LocalNotifications.schedule({ notifications })
+        saveIds(notifications.map((notification) => notification.id))
+        return
+      }
+
+      // Initialize TTS
+      await EnhancedReminders.initializeTts().catch((err: unknown) => 
+        console.warn('[EnhancedReminders] TTS init failed:', err)
+      )
+
+      // Cancel all existing enhanced reminders
+      await EnhancedReminders.cancelAllEnhancedReminders().catch((err: unknown) =>
+        console.warn('[EnhancedReminders] Cancel all failed:', err)
+      )
+
+      // Schedule enhanced reminders for pending medication doses
+      const now = new Date()
+      let notificationIdCounter = 1
+
+      // Schedule for each day in the look-ahead window
+      for (let dayOffset = 0; dayOffset < LOOK_AHEAD_DAYS; dayOffset++) {
+        const date = new Date(now)
+        date.setDate(date.getDate() + dayOffset)
+        const dateKey = toDateKey(date)
+
+        const occ = occurrencesForDate(medications, logs, dateKey)
+        const pending = occ.filter(o => o.status === 'pending')
+
+        for (const occurrence of pending) {
+          // Check if snoozed
+          const snoozeUntil = snoozedUntil[occurrence.key]
+          let triggerAt = dateAt(dateKey, occurrence.time)
+          
+          if (snoozeUntil && snoozeUntil > now.getTime()) {
+            triggerAt = new Date(snoozeUntil)
+          }
+
+          if (triggerAt.getTime() <= now.getTime()) continue
+
+          const med = occurrence.medication
+          
+          // Schedule via plugin
+          try {
+            await EnhancedReminders.scheduleEnhancedReminder({
+              id: notificationIdCounter++,
+              key: occurrence.key,
+              medicationName: med.name,
+              dosage: med.dosage,
+              time: occurrence.time,
+              triggerAtMillis: triggerAt.getTime()
+            } satisfies ScheduleEnhancedReminderOptions)
+          } catch (err) {
+            console.error('[EnhancedReminders] Failed to schedule:', err)
+          }
+        }
+      }
+
+      // Still use standard LocalNotifications for appointments (they don't need full-screen)
+      const permission = await LocalNotifications.checkPermissions()
+      const granted = permission.display === 'granted'
+        ? permission
+        : await LocalNotifications.requestPermissions()
+      if (granted.display !== 'granted') return
+
+      await configureMedicationNotifications(language)
+
+      const previousIds = storedIds()
+      if (previousIds.length > 0) {
+        await LocalNotifications.cancel({ notifications: previousIds.map((id) => ({ id })) })
+      }
+
+      // Only schedule appointment notifications via standard path
+      const appointmentNotifications = upcomingNotifications(medications, logs, appointments, snoozedUntil, language)
+        .filter(n => n.extra?.kind === 'appointment')
+      
+      if (appointmentNotifications.length > 0) await LocalNotifications.schedule({ notifications: appointmentNotifications })
+      saveIds(appointmentNotifications.map((notification) => notification.id))
+
+    } catch (err) {
+      console.error('[EnhancedReminders] Sync failed:', err)
+      // Fall back to standard notifications
+      const permission = await LocalNotifications.checkPermissions()
+      const granted = permission.display === 'granted'
+        ? permission
+        : await LocalNotifications.requestPermissions()
+      if (granted.display !== 'granted') return
+
+      await configureMedicationNotifications(language)
+
+      const previousIds = storedIds()
+      if (previousIds.length > 0) {
+        await LocalNotifications.cancel({ notifications: previousIds.map((id) => ({ id })) })
+      }
+
+      const notifications = upcomingNotifications(medications, logs, appointments, snoozedUntil, language)
+      if (notifications.length > 0) await LocalNotifications.schedule({ notifications })
+      saveIds(notifications.map((notification) => notification.id))
+    }
   })
 
   return syncQueue

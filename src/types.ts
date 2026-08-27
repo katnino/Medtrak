@@ -43,3 +43,7 @@ export interface Appointment {
   reminder: boolean // whether this should trigger an alarm at start time
   createdAt: number
 }
+
+export interface EnhancedReminderSettings {
+  enabled: boolean
+}

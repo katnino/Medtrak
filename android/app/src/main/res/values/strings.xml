@@ -4,4 +4,11 @@
     <string name="title_activity_main">Medtrak</string>
     <string name="package_name">com.medtrak.app</string>
     <string name="custom_url_scheme">com.medtrak.app</string>
+
+    <!-- Enhanced Reminders strings -->
+    <string name="medication_due">Medication Due</string>
+    <string name="scheduled_for">Scheduled for</string>
+    <string name="mark_taken">Taken</string>
+    <string name="skip">Skip</string>
+    <string name="snooze_10min">Snooze 10 min</string>
 </resources>
