@@ -100,3 +100,6 @@ manifest does not request Internet access. The native app keeps up to 60
 upcoming reminders scheduled at once (an iOS platform limit leaves room below
 its maximum of 64); opening the app refreshes that rolling 30-day window after
 changes or over time.
+
+## Licence
+Medtrak is released under the MIT licence.
