@@ -14,9 +14,12 @@ const RADIUS = 112
 
 function timeToAngle(time: string): number {
   const [h, m] = time.split(':').map(Number)
-  const fraction = (h * 60 + m) / (24 * 60)
+  const totalMinutes = h * 60 + m
+  const fraction = totalMinutes / (24 * 60)
   // start at top (12 o'clock = midnight), clockwise
-  return fraction * 360 - 90
+  // 24-hour clock: full circle = 24h, but 00:00 and 12:00 both at top
+  // so we need 2x speed: 30° per hour (720° per full day)
+  return (fraction * 720 + 270) % 360
 }
 
 function pointOnRing(angleDeg: number, r = RADIUS) {

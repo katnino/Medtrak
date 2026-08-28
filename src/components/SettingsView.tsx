@@ -4,6 +4,7 @@ import { Capacitor } from '@capacitor/core'
 import { registerPlugin } from '@capacitor/core'
 import { useI18n } from '../lib/i18n'
 import type { EnhancedReminderSettings } from '../types'
+import packageJson from '../../package.json'
 
 // EnhancedReminders plugin type
 interface EnhancedRemindersPlugin {
@@ -216,7 +217,7 @@ export default function SettingsView({
         <div className="bg-surface border border-hairline rounded-lg p-4 space-y-2 text-sm">
           <div className="flex justify-between text-ink-dim">
             <span>Version</span>
-            <span className="font-mono text-ink">0.0.0</span>
+            <span className="font-mono text-ink">{packageJson.version}</span>
           </div>
           <div className="flex justify-between text-ink-dim">
             <span>Platform</span>
