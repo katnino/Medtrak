@@ -1,24 +1,23 @@
 Categories:
-  - Health & Fitness
-  - Medical
+  - Health Manager
 License: MIT
-WebSite: https://github.com/noniboy/MedtrakApp
-SourceCode: https://github.com/noniboy/MedtrakApp
-IssueTracker: https://github.com/noniboy/MedtrakApp/issues
-Changelog: https://github.com/noniboy/MedtrakApp/blob/main/CHANGELOG.md
+WebSite: https://github.com/katnino/Medtrak
+SourceCode: https://github.com/katnino/Medtrak
+IssueTracker: https://github.com/katnino/Medtrak/issues
+Changelog: https://github.com/katnino/Medtrak/blob/main/CHANGELOG.md
 
 RepoType: git
-Repo: https://github.com/noniboy/MedtrakApp.git
+Repo: https://github.com/katnino/Medtrak.git
 
 Builds:
   - versionName: "1.0"
     versionCode: 1
-    commit: v1.0.0
+    commit: v0.3.0
     subdir: android
     gradle:
       - yes
 
 AutoUpdateMode: Version
 UpdateCheckMode: Tags
-CurrentVersion: 1.0
+CurrentVersion: 0.3.0
 CurrentVersionCode: 1
