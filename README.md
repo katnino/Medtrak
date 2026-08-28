@@ -1,9 +1,11 @@
 # Medtrak
 
-A quiet, dark, elegant medication & appointment tracker: manage medications, see them
+A dark, elegant, bilingual medication & appointment tracker: manage medications, see them
 laid out on a calendar, and get on-screen + browser-notification alarms when
-a dose is due. Everything is stored locally in the browser (`localStorage`) —
-no backend, no account, no database required.
+a dose is due. English and Serbian latin.
+Everything is stored locally in the browser (`localStorage`) —
+no backend, no account, no database required. You can set it up as a web app 
+or you can download android aplication APK from releases. 
 
 ## Features
 
