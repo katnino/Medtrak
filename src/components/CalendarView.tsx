@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { ChevronLeft, ChevronRight, Check, X as XIcon, Plus, Stethoscope } from 'lucide-react'
 import {
   addMonths,
+  eachDayOfInterval,
   endOfMonth,
   endOfWeek,
   format,
@@ -38,15 +39,10 @@ export default function CalendarView({
 
   const days = useMemo(() => {
     const weekStartsOn = language === 'sr-Latn' ? 1 : 0
-    const start = startOfWeek(startOfMonth(cursor), { weekStartsOn })
-    const end = endOfWeek(endOfMonth(cursor), { weekStartsOn })
-    const out: Date[] = []
-    let d = start
-    while (d <= end) {
-      out.push(d)
-      d = new Date(d.getTime() + 86400000)
-    }
-    return out
+    return eachDayOfInterval({
+      start: startOfWeek(startOfMonth(cursor), { weekStartsOn }),
+      end: endOfWeek(endOfMonth(cursor), { weekStartsOn }),
+    })
   }, [cursor, language])
 
   const weekdayLabels = Array.from({ length: 7 }, (_, index) => {
