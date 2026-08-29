@@ -1,8 +1,10 @@
 package com.medtrak.app.enhancedreminders;
 
 import android.app.AlarmManager;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.net.Uri;
 import android.os.Build;
 import android.provider.Settings;
@@ -14,12 +16,16 @@ import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
 
+import org.json.JSONArray;
+
 @CapacitorPlugin(name = "EnhancedReminders")
 public class EnhancedRemindersPlugin extends Plugin {
 
     private static final String TAG = "EnhancedRemindersPlugin";
+    private static final String ACTION_RESULT = "com.medtrak.app.ENHANCED_REMINDER_RESULT";
     private EnhancedReminderNotificationHelper notificationHelper;
     private TtsHelper ttsHelper;
+    private BroadcastReceiver resultReceiver;
 
     @Override
     public void load() {
@@ -28,6 +34,40 @@ public class EnhancedRemindersPlugin extends Plugin {
         notificationHelper = new EnhancedReminderNotificationHelper(context);
         ttsHelper = new TtsHelper(context);
         Log.d(TAG, "EnhancedReminders plugin loaded");
+
+        // Bridge native alarm "taken"/"skip"/"snooze" intents back to JS so the
+        // medication log stays in sync with what the user did on the alarm. The
+        // full-screen alarm and notification actions emit this broadcast (see
+        // EnhancedRemindersReceiver and FullScreenAlarmActivity).
+        IntentFilter filter = new IntentFilter(ACTION_RESULT);
+        resultReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context ctx, Intent intent) {
+                String action = intent.getStringExtra("action");
+                String doseKey = intent.getStringExtra("dose_key");
+                JSObject data = new JSObject();
+                data.put("action", action);
+                data.put("doseKey", doseKey);
+                notifyListeners("enhancedReminderAction", data);
+            }
+        };
+        // Register on the application context so the bridge survives activity
+        // recreation (e.g. rotation); the plugin instance outlives the activity.
+        Context appContext = context.getApplicationContext();
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            appContext.registerReceiver(resultReceiver, filter, Context.RECEIVER_NOT_EXPORTED);
+        } else {
+            appContext.registerReceiver(resultReceiver, filter);
+        }
+    }
+
+    @Override
+    protected void handleOnDestroy() {
+        super.handleOnDestroy();
+        if (resultReceiver != null && getContext() != null) {
+            getContext().getApplicationContext().unregisterReceiver(resultReceiver);
+            resultReceiver = null;
+        }
     }
 
     @PluginMethod
@@ -190,6 +230,21 @@ public class EnhancedRemindersPlugin extends Plugin {
         } catch (Exception e) {
             Log.e(TAG, "Failed to check permissions", e);
             call.reject("Failed to check permissions", e);
+        }
+    }
+
+    @PluginMethod
+    public void drainPendingActions(PluginCall call) {
+        try {
+            // Use the application context so the queue is shared with the
+            // broadcast receiver and full-screen alarm that persisted it.
+            JSONArray actions = ActionStore.drain(getContext().getApplicationContext());
+            JSObject result = new JSObject();
+            result.put("actions", actions);
+            call.resolve(result);
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to drain pending actions", e);
+            call.reject("Failed to drain pending actions", e);
         }
     }
 

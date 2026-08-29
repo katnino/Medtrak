@@ -157,6 +157,10 @@ public class EnhancedRemindersReceiver extends BroadcastReceiver {
         NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
         notificationManager.cancel(notificationId);
 
+        // Persist the action so it can be mirrored to the app even if the web
+        // view bridge is not currently listening (app backgrounded or killed).
+        ActionStore.persist(context, notificationId, action, doseKey);
+
         // Send result to JS via broadcast
         Intent resultIntent = new Intent("com.medtrak.app.ENHANCED_REMINDER_RESULT");
         resultIntent.putExtra("notification_id", notificationId);

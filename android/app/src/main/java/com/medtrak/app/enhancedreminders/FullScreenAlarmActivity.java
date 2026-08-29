@@ -145,6 +145,10 @@ public class FullScreenAlarmActivity extends Activity {
             tts.stop();
         }
 
+        // Persist the action so it can be mirrored to the app even if the web
+        // view bridge is not currently listening (app backgrounded or killed).
+        ActionStore.persist(this, notificationId, action, doseKey);
+
         // Send result back via broadcast to be handled by JS
         Intent resultIntent = new Intent("com.medtrak.app.ENHANCED_REMINDER_RESULT");
         resultIntent.putExtra("notification_id", notificationId);

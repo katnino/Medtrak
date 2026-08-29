@@ -12,7 +12,8 @@ import { useLocalStorage } from './lib/storage'
 import { LanguageProvider, type Language } from './lib/i18n'
 import { appointmentsForDate, occurrencesForDate, toDateKey } from './lib/schedule'
 import { playChime, requestNotificationPermission, sendBrowserNotification } from './lib/notify'
-import { Capacitor } from '@capacitor/core'
+import { Capacitor, registerPlugin, type PluginListenerHandle } from '@capacitor/core'
+import { App as CapacitorApp } from '@capacitor/app'
 import { LocalNotifications, type ActionPerformed } from '@capacitor/local-notifications'
 import {
   MEDICATION_SNOOZE_ACTION,
@@ -20,6 +21,7 @@ import {
   SNOOZE_MINUTES,
   syncLocalNotifications,
 } from './lib/localNotifications'
+import type { EnhancedReminderPlugin, EnhancedReminderActionEvent } from './lib/enhancedRemindersPlugin'
 import type { Appointment, DoseLog, DoseOccurrence, DoseStatus, Medication, EnhancedReminderSettings } from './types'
 
 export default function App() {
@@ -226,6 +228,105 @@ export default function App() {
       if (listener) void listener.remove()
     }
   }, [])
+
+  // --- Enhanced-reminder native mirroring (additive; no UI changes) ---
+  // Apply a native "taken"/"skip"/"snooze" action to the medication log so
+  // acknowledging a notification / full-screen alarm stays in sync with the app.
+  const applyEnhancedAction = (action: string, doseKey: string) => {
+    const rawKey = doseKey.replace(/^(dose|snooze):/, '')
+    // Mirror to the log AND clear the in-app alarm queue — the original
+    // standard-notification handler did both; without clearing the queue the
+    // alarm overlay would re-prompt even after a successful mirror.
+    setAlarmQueue((q) => q.filter((o) => o.key !== rawKey))
+    if (action === 'taken') {
+      setStatus(rawKey, 'taken')
+    } else if (action === 'skip') {
+      setStatus(rawKey, 'skipped')
+    } else if (action === 'snooze') {
+      const snoozeAt = Date.now() + SNOOZE_MINUTES * 60 * 1000
+      setSnoozedUntil((prev) => ({ ...prev, [rawKey]: snoozeAt }))
+      void syncLocalNotifications(
+        medications,
+        logs,
+        appointments,
+        { ...snoozedUntil, [rawKey]: snoozeAt },
+        language,
+        enhancedReminders.enabled,
+      )
+    }
+  }
+  const applyEnhancedActionRef = useRef(applyEnhancedAction)
+  applyEnhancedActionRef.current = applyEnhancedAction
+
+  // Live bridge: mirror foreground notification / alarm actions instantly.
+  useEffect(() => {
+    if (!enhancedReminders.enabled) return
+    let removed = false
+    let handle: PluginListenerHandle | undefined
+    const EnhancedReminders = registerPlugin<EnhancedReminderPlugin>('EnhancedReminders', { web: () => null })
+    void (async () => {
+      if (!EnhancedReminders || removed) return
+      handle = await EnhancedReminders.addListener('enhancedReminderAction', (event: EnhancedReminderActionEvent) => {
+        applyEnhancedActionRef.current(event.action, event.doseKey)
+      })
+    })()
+    return () => {
+      removed = true
+      void handle?.remove()
+    }
+  }, [enhancedReminders.enabled])
+
+  // Reconcile actions performed while the web bridge was not listening
+  // (app backgrounded or killed). Drains the durable queue on resume / cold start.
+  useEffect(() => {
+    if (!enhancedReminders.enabled) return
+    let removed = false
+    const EnhancedReminders = registerPlugin<EnhancedReminderPlugin>('EnhancedReminders', { web: () => null })
+    const reconcile = async () => {
+      if (removed) return
+      try {
+        const result = await EnhancedReminders.drainPendingActions()
+        for (const a of result.actions ?? []) {
+          applyEnhancedActionRef.current(a.action, a.doseKey)
+        }
+      } catch {
+        // Bridge/plugin not ready — the action stays queued for the next resume.
+      }
+    }
+    const resumeHandle = CapacitorApp.addListener('appStateChange', (state) => {
+      if (state.isActive) void reconcile()
+    })
+    void reconcile()
+    return () => {
+      removed = true
+      void resumeHandle.then((h) => h.remove())
+    }
+  }, [enhancedReminders.enabled])
+
+  // Safety net: the live `notifyListeners` bridge is not reliably delivered
+  // while the app is merely backgrounded, and a foreground tap produces no
+  // appStateChange. Poll the durable queue so any persisted native action is
+  // applied within a few seconds regardless of app state.
+  useEffect(() => {
+    if (!enhancedReminders.enabled) return
+    let removed = false
+    const EnhancedReminders = registerPlugin<EnhancedReminderPlugin>('EnhancedReminders', { web: () => null })
+    const id = setInterval(async () => {
+      if (removed) return
+      try {
+        const result = await EnhancedReminders.drainPendingActions()
+        for (const a of result.actions ?? []) {
+          applyEnhancedActionRef.current(a.action, a.doseKey)
+        }
+      } catch {
+        // Plugin/bridge not ready — the action stays queued for the next poll.
+      }
+    }, 15_000)
+    return () => {
+      removed = true
+      clearInterval(id)
+    }
+  }, [enhancedReminders.enabled])
 
   const acknowledgeApptAlarm = () => {
     if (!currentApptAlarm) return
