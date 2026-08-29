@@ -13,14 +13,20 @@ or you can download android application APK from releases.
 
 Here's a look at the application:
 
-![Screenshot 1](images/Screenshot_20260828_151629_Medtrak.jpg)
-![Screenshot 2](images/Screenshot_20260828_151646_Medtrak.jpg)
-![Screenshot 3](images/Screenshot_20260828_151705_Medtrak.jpg)
-![Screenshot 4](images/Screenshot_20260828_151729_Medtrak.jpg)
-![Screenshot 5](images/Screenshot_20260828_151752_Medtrak.jpg)
-![Screenshot 6](images/Screenshot_20260828_151802_Medtrak.jpg)
-![Screenshot 7](images/Screenshot_20260828_151811_Medtrak.jpg)
-![Screenshot 8](images/Screenshot_20260828_151821_Medtrak.jpg)
+<table>
+<tr>
+<td><img src="images/Screenshot_20260828_151629_Medtrak.jpg" width="240"/></td>
+<td><img src="images/Screenshot_20260828_151646_Medtrak.jpg" width="240"/></td>
+<td><img src="images/Screenshot_20260828_151705_Medtrak.jpg" width="240"/></td>
+<td><img src="images/Screenshot_20260828_151729_Medtrak.jpg" width="240"/></td>
+</tr>
+<tr>
+<td><img src="images/Screenshot_20260828_151752_Medtrak.jpg" width="240"/></td>
+<td><img src="images/Screenshot_20260828_151802_Medtrak.jpg" width="240"/></td>
+<td><img src="images/Screenshot_20260828_151811_Medtrak.jpg" width="240"/></td>
+<td><img src="images/Screenshot_20260828_151821_Medtrak.jpg" width="240"/></td>
+</tr>
+</table>
 
 ## Features
 
