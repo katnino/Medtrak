@@ -2,10 +2,10 @@
 
 # Medtrak
 
-Tamna, elegantna, dvojezična aplikacija za praćenje lekova i termina kod lekara:
-upravljajte lekovima, pregledajte ih na kalendaru i dobijajte alarme na ekranu
-i preko notifikacija u pregledaču kada je vreme za dozu. Engleski i srpski
-(latinica). Sve se čuva lokalno u pregledaču (`localStorage`) — nema servera,
+Tamna, elegantna, dvojezična aplikacija za praćenje ljekova i termina kod ljekara:
+upravljajte ljekovima, pregledajte ih na kalendaru i dobijajte alarme na ekranu
+i preko notifikacija u pregledaču kada je vrijeme za dozu. Engleski i srpski
+(latinica). Sve se čuva lokalno u pregledaču (`localStorage`)  nema servera,
 naloga ni baze podataka. Možete je koristiti kao veb aplikaciju ili preuzeti
 Android APK sa releases stranice.
 
@@ -30,19 +30,19 @@ Evo kako izgleda aplikacija:
 
 ## Funkcionalnosti
 
-- **Lekovi** — naziv, doza, oblik, jedno ili više vremena podsetnika dnevno,
+- **Lekovi** — naziv, doza, oblik, jedno ili više vremena podsjetnika dnevno,
   određeni dani u nedelji (ili svaki dan), datumi početka/kraja, napomene.
 - **Danas** — kružni "meridijan" prikaz koji pozicionira današnje doze prema
   vremenu u danu, plus jednostavna lista uzeto / preskočeno.
-- **Termini kod lekara** — naziv, lekar/klinika, lokacija, datum, vreme i
+- **Termini kod lekara** — naziv, ljekar/klinika, lokacija, datum, vrijeme i
   napomene. Prikazani na kalendaru (kao tačka na dan) i u posebnoj sekciji
   na stranici Danas kada termin pada tog dana.
-- **Kalendar** — prikaz po mesecima sa malim indikatorom pridržavanja terapiji
+- **Kalendar** — prikaz po mjesecima sa malim indikatorom pridržavanja terapiji
   i tačkom za termin po danu, plus detaljna lista za izabrani dan.
-- **Alarmi** — kada doza ili termin dospe, prikazuje se alarm preko celog
+- **Alarmi** — kada doza ili termin dospije, prikazuje se alarm preko cijelog
   ekrana sa blagim zvukom (generisanim u pregledaču, bez audio fajla) i, ako
   ste dali dozvolu, i nativnom notifikacijom pregledača.
-- **Tamni, niskokontrastni interfejs** — namerno prigušena paleta boja (bez
+- **Tamni, niskokontrastni interfejs** — namjerno prigušena paleta boja (bez
   jarkih/zasićenih akcentnih boja), serifni font za naslove, monospejs font
   za vremena i doze.
 
@@ -65,6 +65,7 @@ Generiše potpuno statički sajt u `dist/`.
 
 Ovo je statička single-page aplikacija (Vite + React), pa se deployuje na
 skoro isti način svuda.
+Android aplikacija se instalira uobičajenim putem preko APK fajla koji se može preuzeti sa releases stranice.
 
 ### Vercel
 
@@ -89,18 +90,18 @@ npx wrangler pages deploy dist
 ### Bilo koji drugi statički hosting (Netlify, GitHub Pages, S3, itd.)
 
 Pokrenite `npm run build` i otpremite sadržaj `dist/` foldera. To je obična
-statička stranica — bez server-side koda, bez potrebnih environment
+statička stranica, bez server-side koda, bez potrebnih environment
 promenljivih.
 
 ## Napomene o podsetnicima
 
-Dozvola za notifikacije pregledača se traži pri prvom učitavanju — dozvolite
+Dozvola za notifikacije pregledača se traži pri prvom učitavanju, dozvolite
 je ako želite nativne OS notifikacije uz alarm unutar aplikacije. Kao i kod
 svake aplikacije zasnovane na pregledaču, podsetnici rade samo dok je tab
 otvoren (u prvom planu ili pozadini); ovo je ograničenje same platforme
 pregledača, ne nešto što statički sajt može da zaobiđe bez push-notifikacionog
 servera. Za sve što je bezbednosno kritično, tretirajte ovo kao koristan
-podsetnik uz — a ne zamenu za — kutiju za lekove ili namenski medicinski
+podsetnik uz — a ne zamenu za — kutiju za ljekove ili namjenski medicinski
 uređaj.
 
 ## Offline nativni podsetnici
@@ -123,9 +124,9 @@ npm run cap:android
 Dozvolite notifikacije kada se aplikacija otvori. Na Android 12+, uključite
 sistemsku dozvolu "Alarms & reminders" za precizno zakazivanje. Android
 manifest ne traži pristup internetu. Nativna aplikacija drži zakazano do 60
-predstojećih podsetnika odjednom (iOS ograničenje platforme ostavlja prostor
-ispod svog maksimuma od 64); otvaranje aplikacije osvežava taj rotirajući
-prozor od 30 dana nakon izmena ili s vremenom.
+predstojećih podsjetnika odjednom (iOS ograničenje platforme ostavlja prostor
+ispod svog maksimuma od 64); otvaranje aplikacije osvježava taj rotirajući
+prozor od 30 dana nakon izmjena ili s vremenom.
 
 ## Licenca
 
