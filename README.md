@@ -9,6 +9,19 @@ Everything is stored locally in the browser (`localStorage`) —
 no backend, no account, no database required. You can set it up as a web app
 or you can download android application APK from releases.
 
+## Screenshots
+
+Here's a look at the application:
+
+![Screenshot 1](images/Screenshot_20260828_151629_Medtrak.jpg)
+![Screenshot 2](images/Screenshot_20260828_151646_Medtrak.jpg)
+![Screenshot 3](images/Screenshot_20260828_151705_Medtrak.jpg)
+![Screenshot 4](images/Screenshot_20260828_151729_Medtrak.jpg)
+![Screenshot 5](images/Screenshot_20260828_151752_Medtrak.jpg)
+![Screenshot 6](images/Screenshot_20260828_151802_Medtrak.jpg)
+![Screenshot 7](images/Screenshot_20260828_151811_Medtrak.jpg)
+![Screenshot 8](images/Screenshot_20260828_151821_Medtrak.jpg)
+
 ## Features
 
 - **Medications** — name, dosage, form, one or more reminder times per day,
