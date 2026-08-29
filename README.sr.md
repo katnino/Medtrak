@@ -9,6 +9,25 @@ i preko notifikacija u pregledaču kada je vreme za dozu. Engleski i srpski
 naloga ni baze podataka. Možete je koristiti kao veb aplikaciju ili preuzeti
 Android APK sa releases stranice.
 
+## Screenshot-ovi
+
+Evo kako izgleda aplikacija:
+
+<table>
+<tr>
+<td><img src="images/Screenshot_20260828_151629_Medtrak.jpg" width="240"/></td>
+<td><img src="images/Screenshot_20260828_151646_Medtrak.jpg" width="240"/></td>
+<td><img src="images/Screenshot_20260828_151705_Medtrak.jpg" width="240"/></td>
+<td><img src="images/Screenshot_20260828_151729_Medtrak.jpg" width="240"/></td>
+</tr>
+<tr>
+<td><img src="images/Screenshot_20260828_151752_Medtrak.jpg" width="240"/></td>
+<td><img src="images/Screenshot_20260828_151802_Medtrak.jpg" width="240"/></td>
+<td><img src="images/Screenshot_20260828_151811_Medtrak.jpg" width="240"/></td>
+<td><img src="images/Screenshot_20260828_151821_Medtrak.jpg" width="240"/></td>
+</tr>
+</table>
+
 ## Funkcionalnosti
 
 - **Lekovi** — naziv, doza, oblik, jedno ili više vremena podsetnika dnevno,
