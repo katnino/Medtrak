@@ -1,11 +1,13 @@
+**[English](README.md) | [Srpski](README.sr.md)**
+
 # Medtrak
 
 A dark, elegant, bilingual medication & appointment tracker: manage medications, see them
 laid out on a calendar, and get on-screen + browser-notification alarms when
 a dose is due. English and Serbian latin.
 Everything is stored locally in the browser (`localStorage`) —
-no backend, no account, no database required. You can set it up as a web app 
-or you can download android aplication APK from releases. 
+no backend, no account, no database required. You can set it up as a web app
+or you can download android application APK from releases.
 
 ## Features
 
@@ -27,14 +29,14 @@ or you can download android aplication APK from releases.
 
 ## Running locally
 
-```bash
+```
 npm install
 npm run dev
 ```
 
 ## Building
 
-```bash
+```
 npm run build
 ```
 
@@ -56,10 +58,12 @@ almost anywhere.
 
 1. Push to a Git repo and connect it in the Cloudflare dashboard, or deploy
    directly with Wrangler:
-   ```bash
-   npm run build
-   npx wrangler pages deploy dist
-   ```
+
+```
+npm run build
+npx wrangler pages deploy dist
+```
+
 2. Build command: `npm run build`. Build output directory: `dist`.
 
 ### Any other static host (Netlify, GitHub Pages, S3, etc.)
@@ -84,7 +88,7 @@ builds schedule reminders directly on the device, so they do not need an
 account, backend, or internet connection. The web build remains completely
 static and uses its existing in-tab alarms.
 
-```bash
+```
 # Once per platform
 npx cap add ios
 npx cap add android
@@ -95,11 +99,12 @@ npm run cap:android
 ```
 
 Grant notification permission when the app opens. On Android 12+, enable the
-system's “Alarms & reminders” permission for exact scheduling. The Android
+system's "Alarms & reminders" permission for exact scheduling. The Android
 manifest does not request Internet access. The native app keeps up to 60
 upcoming reminders scheduled at once (an iOS platform limit leaves room below
 its maximum of 64); opening the app refreshes that rolling 30-day window after
 changes or over time.
 
 ## Licence
+
 Medtrak is released under the MIT licence.
