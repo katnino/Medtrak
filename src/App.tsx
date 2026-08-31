@@ -9,7 +9,7 @@ import AppointmentModal from './components/AppointmentModal'
 import AlarmOverlay from './components/AlarmOverlay'
 import AppointmentAlarmOverlay from './components/AppointmentAlarmOverlay'
 import { useLocalStorage } from './lib/storage'
-import { LanguageProvider, type Language } from './lib/i18n'
+import { LanguageProvider, type Language, translate } from './lib/i18n'
 import { appointmentsForDate, occurrencesForDate, toDateKey } from './lib/schedule'
 import { playChime, requestNotificationPermission, sendBrowserNotification } from './lib/notify'
 import { Capacitor, registerPlugin, type PluginListenerHandle } from '@capacitor/core'
@@ -93,7 +93,7 @@ export default function App() {
           return next
         })
         due.forEach((o) => {
-          sendBrowserNotification(`${o.medication.name} — ${o.medication.dosage}`, language === 'sr-Latn' ? `Zakazano za ${o.time}` : `Scheduled for ${o.time}`)
+          sendBrowserNotification(`${o.medication.name} — ${o.medication.dosage}`, translate(language, 'scheduledFor', { time: o.time }))
         })
         playChime()
       }
@@ -115,7 +115,7 @@ export default function App() {
           return next
         })
         dueAppts.forEach((a) => {
-          sendBrowserNotification(a.title, [a.provider, a.location].filter(Boolean).join(' · ') || (language === 'sr-Latn' ? `U ${a.time}` : `At ${a.time}`))
+          sendBrowserNotification(a.title, [a.provider, a.location].filter(Boolean).join(' · ') || translate(language, 'atTime', { time: a.time }))
         })
         playChime()
       }

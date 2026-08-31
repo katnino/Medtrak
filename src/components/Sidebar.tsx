@@ -1,5 +1,5 @@
 import { CalendarDays, ListChecks, Sunrise, Settings } from 'lucide-react'
-import { useI18n } from '../lib/i18n'
+import { useI18n, LANGUAGES, languageName, activeMedicationsLabel } from '../lib/i18n'
 
 export type View = 'today' | 'calendar' | 'medications' | 'settings'
 
@@ -43,19 +43,20 @@ export default function Sidebar({ view, onChange, medicationCount }: Props) {
             </button>
           )
         })}
-        <button
-          type="button"
-          onClick={() => setLanguage(language === 'en' ? 'sr-Latn' : 'en')}
-          className="flex md:hidden flex-1 items-center justify-center px-2 py-2.5 rounded-md text-xs transition-colors text-ink-dim hover:text-ink hover:bg-surface"
-          aria-label={`${t('language')}: ${language === 'en' ? t('english') : t('serbianLatin')}`}
-          title={`${t('language')}: ${language === 'en' ? t('english') : t('serbianLatin')}`}
+        <select
+          value={language}
+          onChange={(event) => setLanguage(event.target.value as typeof language)}
+          className="flex-1 md:hidden px-2 py-2.5 rounded-md text-xs transition-colors text-ink-dim bg-void border border-hairline outline-none focus:border-sage-dim"
+          aria-label={t('language')}
         >
-          <span className="truncate">{t('language')}</span>
-        </button>
+          {LANGUAGES.map((lang) => (
+            <option key={lang} value={lang}>{languageName(lang)}</option>
+          ))}
+        </select>
       </nav>
 
       <div className="hidden md:block mt-auto px-6 py-6 text-xs text-ink-faint font-mono border-t border-hairline-soft">
-        {t('activeMedications', { count: medicationCount, suffix: medicationCount === 1 ? '' : 's' })}
+        {activeMedicationsLabel(language, medicationCount)}
         <label className="mt-4 block">
           <span className="sr-only">{t('language')}</span>
           <select
@@ -64,8 +65,9 @@ export default function Sidebar({ view, onChange, medicationCount }: Props) {
             className="w-full bg-void border border-hairline rounded px-2 py-1.5 text-xs text-ink-dim outline-none focus:border-sage-dim"
             aria-label={t('language')}
           >
-            <option value="en">{t('english')}</option>
-            <option value="sr-Latn">{t('serbianLatin')}</option>
+            {LANGUAGES.map((lang) => (
+              <option key={lang} value={lang}>{languageName(lang)}</option>
+            ))}
           </select>
         </label>
       </div>

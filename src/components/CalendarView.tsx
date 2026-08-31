@@ -14,7 +14,7 @@ import {
 } from 'date-fns'
 import type { Appointment, DoseLog, DoseStatus, Medication } from '../types'
 import { adherenceForDate, appointmentsForDate, occurrencesForDate, toDateKey } from '../lib/schedule'
-import { useI18n } from '../lib/i18n'
+import { useI18n, localeConfig } from '../lib/i18n'
 
 interface Props {
   medications: Medication[]
@@ -38,7 +38,7 @@ export default function CalendarView({
   const [selectedDate, setSelectedDate] = useState<string>(toDateKey(new Date()))
 
   const days = useMemo(() => {
-    const weekStartsOn = language === 'sr-Latn' ? 1 : 0
+    const weekStartsOn = localeConfig[language].weekStartsOn
     return eachDayOfInterval({
       start: startOfWeek(startOfMonth(cursor), { weekStartsOn }),
       end: endOfWeek(endOfMonth(cursor), { weekStartsOn }),
@@ -46,7 +46,7 @@ export default function CalendarView({
   }, [cursor, language])
 
   const weekdayLabels = Array.from({ length: 7 }, (_, index) => {
-    const firstDay = language === 'sr-Latn' ? 2 : 1
+    const firstDay = localeConfig[language].firstDay
     return new Intl.DateTimeFormat(locale, { weekday: 'narrow' }).format(new Date(2023, 0, firstDay + index))
   })
   const monthLabel = new Intl.DateTimeFormat(locale, { month: 'long', year: 'numeric' }).format(cursor)
