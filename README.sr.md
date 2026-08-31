@@ -2,7 +2,7 @@
 
 # Medtrak
 
-Tamna, elegantna, dvojezična aplikacija za praćenje ljekova i termina kod ljekara:
+Tamna, elegantna, multijezična aplikacija za praćenje ljekova i termina kod ljekara:
 upravljajte ljekovima, pregledajte ih na kalendaru i dobijajte alarme na ekranu
 i preko notifikacija u pregledaču kada je vrijeme za dozu. Engleski, srpski
 (latinica), nemački, francuski i italijanski. Sve se čuva lokalno u pregledaču (`localStorage`)  nema servera,

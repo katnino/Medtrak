@@ -2,7 +2,7 @@
 
 # Medtrak
 
-A dark, elegant, bilingual medication & appointment tracker: manage medications, see them
+A dark, elegant, multilingual medication & appointment tracker: manage medications, see them
 laid out on a calendar, and get on-screen + browser-notification alarms when
 a dose is due. English, Serbian (Latin), German, French and Italian.
 Everything is stored locally in the browser (`localStorage`) —
