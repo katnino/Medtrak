@@ -9,6 +9,16 @@ i preko notifikacija u pregledaču kada je vrijeme za dozu. Engleski, srpski
 naloga ni baze podataka. Možete je koristiti kao veb aplikaciju ili preuzeti
 Android APK sa releases stranice.
 
+## Što je novo u 1.0.0 (2026-11-10)
+
+- **Pouzdani podsjetnici nakon restarta** — Android enhanced podsjetnici sada prežive restart uređaja. Njihov pun payload se čuva nativno i ponovno se aktivira na `BOOT_COMPLETED`.
+- **Android 14+ full-screen alarmi rade** — `USE_FULL_SCREEN_INTENT` deklarisan; podsjetnici za ljekove pojavljuju se kao full-screen intencije na Android 14+ (uključite "Full-screen notifications" u sistemskim podešavanjima ako nije auto-dozvoljeno).
+- **Ispravljen preklapanje na quadranu** — 12-satni quadran sada stavlja poslijepodnevne doze na unutrašnji krug, tako da 09:00 i 21:00 dijele poziciju na satu bez kolizije.
+- **Propušteni alarmi se ponovo pojavljuju** — Ako zatvorite aplikaciju dok je alarm vidljiv, ta doza će se ponovno javiti pri sljedećem pokretanju (nema više "odbačen ali nikada neodgovoren" tihog potiskivanja).
+- **Enhanced podsjetnici se isključuju čisto** — Isključivanje opcije poništi sve aktivirane nativne alarme tako da ne nastavljaju da se pokreću.
+
+Detaljnije u [CHANGELOG.md](CHANGELOG.md).
+
 ## Screenshot-ovi
 
 Evo kako izgleda aplikacija:

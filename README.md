@@ -9,6 +9,16 @@ Everything is stored locally in the browser (`localStorage`) —
 no backend, no account, no database required. You can set it up as a web app
 or you can download android application APK from releases.
 
+## What's new in 1.0.0 (2026-11-10)
+
+- **Reliable reminders after reboot** — Android enhanced reminders now survive device restarts. Their full payload is persisted natively and re-armed on `BOOT_COMPLETED`.
+- **Android 14+ full-screen alarms work** — `USE_FULL_SCREEN_INTENT` declared; medication alarms appear as full-screen intents on Android 14+ (enable "Full-screen notifications" in system settings if not auto-granted).
+- **Fixed dial overlap** — The 12-hour clock dial now puts PM doses on an inner ring, so 09:00 and 21:00 share the clock position without colliding.
+- **Missed alarms reappear** — If you close the app while an alarm is showing, that dose will prompt again on next launch (no more "fired but never answered" silent suppression).
+- **Enhanced reminders toggle off cleanly** — Turning the feature off cancels all armed native alarms so they don't keep firing.
+
+See [CHANGELOG.md](CHANGELOG.md) for full details.
+
 ## Screenshots
 
 Here's a look at the application:
