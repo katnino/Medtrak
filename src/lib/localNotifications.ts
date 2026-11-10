@@ -6,6 +6,10 @@ import type { Appointment, DoseLog, DoseOccurrence, Medication } from '../types'
 import type { EnhancedReminderPlugin, ScheduleEnhancedReminderOptions } from './enhancedRemindersPlugin'
 
 const SCHEDULED_IDS_KEY = 'medtrak.localNotificationIds'
+// Marks that the native enhanced-reminder plugin currently owns the alarm
+// schedule. Persisted so turning the feature off can cancel those alarms even
+// after the app was restarted (when the JS in-memory state is gone).
+const ENHANCED_ACTIVE_KEY = 'medtrak.enhancedRemindersActive'
 const LOOK_AHEAD_DAYS = 30
 // iOS allows at most 64 pending local notifications. Leave a small buffer for
 // the operating system and any future app notifications.
@@ -38,6 +42,23 @@ function saveIds(ids: number[]): void {
     localStorage.setItem(SCHEDULED_IDS_KEY, JSON.stringify(ids))
   } catch {
     // The native schedules still work if browser storage is unavailable.
+  }
+}
+
+function enhancedRemindersWereActive(): boolean {
+  try {
+    return localStorage.getItem(ENHANCED_ACTIVE_KEY) === '1'
+  } catch {
+    return false
+  }
+}
+
+function setEnhancedRemindersActive(active: boolean): void {
+  try {
+    if (active) localStorage.setItem(ENHANCED_ACTIVE_KEY, '1')
+    else localStorage.removeItem(ENHANCED_ACTIVE_KEY)
+  } catch {
+    // Best-effort marker; the native alarms still work without it.
   }
 }
 
@@ -183,6 +204,21 @@ export function upcomingNotifications(
 let syncQueue: Promise<void> = Promise.resolve()
 
 /**
+ * Remove any alarms created by the enhanced-reminder plugin. Called when the
+ * user turns the feature off so old full-screen alarms cannot keep firing
+ * (and cannot be restored after a reboot) alongside the standard schedule.
+ */
+async function cancelEnhancedReminders(): Promise<void> {
+  try {
+    const { registerPlugin } = await import('@capacitor/core')
+    const EnhancedReminders = registerPlugin<EnhancedReminderPlugin>('EnhancedReminders', { web: () => null })
+    await EnhancedReminders.cancelAllEnhancedReminders()
+  } catch {
+    // Plugin not available in this build — there is nothing to cancel.
+  }
+}
+
+/**
  * Mirrors future reminders into the device scheduler. This is deliberately a
  * no-op in browsers, so the static web app remains backend-free.
  */
@@ -201,7 +237,15 @@ export function syncLocalNotifications(
     return syncEnhancedReminders(medications, logs, appointments, snoozedUntil, language)
   }
 
+  const clearEnhancedReminders =
+    Capacitor.getPlatform() === 'android' && enhancedRemindersWereActive()
+
   syncQueue = syncQueue.catch(() => undefined).then(async () => {
+    if (clearEnhancedReminders) {
+      await cancelEnhancedReminders()
+      setEnhancedRemindersActive(false)
+    }
+
     const permission = await LocalNotifications.checkPermissions()
     const granted = permission.display === 'granted'
       ? permission
@@ -239,6 +283,7 @@ async function syncEnhancedReminders(
       
       if (!EnhancedReminders) {
         console.warn('[EnhancedReminders] Plugin not available, falling back to standard notifications')
+        setEnhancedRemindersActive(false)
         // Fall back to standard notifications for appointments only
         const permission = await LocalNotifications.checkPermissions()
         const granted = permission.display === 'granted'
@@ -268,6 +313,9 @@ async function syncEnhancedReminders(
       await EnhancedReminders.cancelAllEnhancedReminders().catch((err: unknown) =>
         console.warn('[EnhancedReminders] Cancel all failed:', err)
       )
+
+      // From this point the native plugin owns the alarm schedule.
+      setEnhancedRemindersActive(true)
 
       // Schedule enhanced reminders for pending medication doses
       const now = new Date()
@@ -334,6 +382,11 @@ async function syncEnhancedReminders(
 
     } catch (err) {
       console.error('[EnhancedReminders] Sync failed:', err)
+      // Do not leave partially-scheduled enhanced alarms behind when falling
+      // back to the standard notification engine.
+      await cancelEnhancedReminders()
+      setEnhancedRemindersActive(false)
+
       // Fall back to standard notifications
       const permission = await LocalNotifications.checkPermissions()
       const granted = permission.display === 'granted'

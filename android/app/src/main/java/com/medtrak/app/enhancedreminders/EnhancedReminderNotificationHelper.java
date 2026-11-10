@@ -23,6 +23,9 @@ public class EnhancedReminderNotificationHelper {
     private static final String CHANNEL_NAME = "Enhanced Medication Reminders";
     private static final String CHANNEL_DESCRIPTION = "Full-screen alarms with voice for medication doses";
 
+    private static final String SCHEDULED_IDS_PREFS = "medtrak_scheduled_alarms";
+    private static final String SCHEDULED_IDS_KEY = "ids";
+
     private final Context context;
     private final NotificationManager notificationManager;
     private final AlarmManager alarmManager;
@@ -64,6 +67,30 @@ public class EnhancedReminderNotificationHelper {
     }
 
     public void scheduleEnhancedReminder(int id, String key, String medicationName, String dosage, String time, long triggerAtMillis) {
+        scheduleEnhancedReminder(
+            id,
+            key,
+            medicationName,
+            dosage,
+            time,
+            triggerAtMillis,
+            java.util.Locale.getDefault().toLanguageTag()
+        );
+    }
+
+    public void scheduleEnhancedReminder(
+        int id,
+        String key,
+        String medicationName,
+        String dosage,
+        String time,
+        long triggerAtMillis,
+        String language
+    ) {
+        String languageTag = language == null || language.isEmpty()
+            ? java.util.Locale.getDefault().toLanguageTag()
+            : language;
+
         // Create the full-screen intent that launches FullScreenAlarmActivity
         Intent fullScreenIntent = new Intent(context, FullScreenAlarmActivity.class);
         fullScreenIntent.putExtra("notification_id", id);
@@ -71,7 +98,7 @@ public class EnhancedReminderNotificationHelper {
         fullScreenIntent.putExtra("medication_name", medicationName);
         fullScreenIntent.putExtra("dosage", dosage);
         fullScreenIntent.putExtra("time", time);
-        fullScreenIntent.putExtra("language", java.util.Locale.getDefault().toLanguageTag());
+        fullScreenIntent.putExtra("language", languageTag);
         fullScreenIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
 
         // Use FLAG_IMMUTABLE for Android 12+ (API 31+)
@@ -96,7 +123,7 @@ public class EnhancedReminderNotificationHelper {
         contentIntent.putExtra("medication_name", medicationName);
         contentIntent.putExtra("dosage", dosage);
         contentIntent.putExtra("time", time);
-        contentIntent.putExtra("language", java.util.Locale.getDefault().toLanguageTag());
+        contentIntent.putExtra("language", languageTag);
         contentIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
 
         PendingIntent contentPendingIntent = PendingIntent.getActivity(
@@ -119,7 +146,7 @@ public class EnhancedReminderNotificationHelper {
         alarmIntent.putExtra("medication_name", medicationName);
         alarmIntent.putExtra("dosage", dosage);
         alarmIntent.putExtra("time", time);
-        alarmIntent.putExtra("language", java.util.Locale.getDefault().toLanguageTag());
+        alarmIntent.putExtra("language", languageTag);
 
         PendingIntent alarmPendingIntent = PendingIntent.getBroadcast(
             context,
@@ -150,6 +177,24 @@ public class EnhancedReminderNotificationHelper {
         }
 
         Log.d(TAG, "Scheduled enhanced reminder id=" + id + " for " + medicationName + " at " + triggerAtMillis);
+        rememberScheduledId(id);
+        ReminderStore.save(
+            context,
+            new ReminderStore.Reminder(id, key, medicationName, dosage, time, triggerAtMillis, languageTag)
+        );
+    }
+
+    private void rememberScheduledId(int id) {
+        try {
+            android.content.SharedPreferences prefs = context.getSharedPreferences(
+                SCHEDULED_IDS_PREFS, Context.MODE_PRIVATE);
+            java.util.HashSet<String> ids = new java.util.HashSet<>(
+                prefs.getStringSet(SCHEDULED_IDS_KEY, new java.util.HashSet<>()));
+            ids.add(String.valueOf(id));
+            prefs.edit().putStringSet(SCHEDULED_IDS_KEY, ids).apply();
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to remember scheduled id", e);
+        }
     }
 
     private PendingIntent createActionIntent(int notificationId, String action, String doseKey) {
@@ -183,14 +228,41 @@ public class EnhancedReminderNotificationHelper {
         // Cancel the notification if shown
         notificationManager.cancel(id);
 
+        ReminderStore.remove(context, id);
+
         Log.d(TAG, "Cancelled enhanced reminder id=" + id);
     }
 
     public void cancelAllReminders() {
-        // Cancel all alarms by iterating through possible IDs
-        // In practice, we'd track scheduled IDs, but for now cancel all notifications
         notificationManager.cancelAll();
+        ReminderStore.clear(context);
+
+        android.content.SharedPreferences prefs = context.getSharedPreferences(
+            SCHEDULED_IDS_PREFS, Context.MODE_PRIVATE);
+        java.util.Set<String> ids = prefs.getStringSet(SCHEDULED_IDS_KEY, new java.util.HashSet<>());
+        for (String idStr : ids) {
+            try {
+                int id = Integer.parseInt(idStr);
+                Intent alarmIntent = new Intent(context, EnhancedRemindersReceiver.class);
+                alarmIntent.setAction("com.medtrak.app.ENHANCED_REMINDER_TRIGGER");
+                int flags = PendingIntent.FLAG_UPDATE_CURRENT;
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    flags |= PendingIntent.FLAG_IMMUTABLE;
+                }
+                PendingIntent pi = PendingIntent.getBroadcast(context, id, alarmIntent, flags);
+                alarmManager.cancel(pi);
+            } catch (NumberFormatException e) {
+                Log.e(TAG, "Bad scheduled id: " + idStr, e);
+            }
+        }
+        prefs.edit().remove(SCHEDULED_IDS_KEY).apply();
+
         Log.d(TAG, "Cancelled all enhanced reminders");
+    }
+
+    public void scheduleSnooze(int notificationId, String key, String medicationName,
+                               String dosage, String time, long triggerAtMillis) {
+        scheduleEnhancedReminder(notificationId, key, medicationName, dosage, time, triggerAtMillis);
     }
 
     private int getSmallIcon() {

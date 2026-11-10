@@ -61,6 +61,46 @@ export default function App() {
     void syncLocalNotifications(medications, logs, appointments, snoozedUntil, language, enhancedReminders.enabled)
   }, [medications, logs, appointments, snoozedUntil, language, enhancedReminders.enabled])
 
+  // A dose stays "fired" only until it is acknowledged. Clear stale flags on
+  // startup so an alarm that was missed (app closed, tab killed, device
+  // rebooted) is shown again on the next launch. Flags for other days and for
+  // appointments that are no longer today can no longer trigger and are pruned.
+  useEffect(() => {
+    const today = toDateKey(new Date())
+    const pendingToday = new Set(
+      occurrencesForDate(medications, logs, today)
+        .filter((occurrence) => occurrence.status === 'pending')
+        .map((occurrence) => occurrence.key),
+    )
+    const appointmentKeysToday = new Set(
+      appointmentsForDate(appointments, today).map((appointment) => `appt:${appointment.id}`),
+    )
+
+    setFiredAlarms((prev) => {
+      const next: Record<string, boolean> = {}
+      let changed = false
+
+      for (const [key, value] of Object.entries(prev)) {
+        if (key.startsWith('appt:')) {
+          if (appointmentKeysToday.has(key)) next[key] = value
+          else changed = true
+          continue
+        }
+
+        const [, date] = key.split('__')
+        if (date !== today || pendingToday.has(key)) {
+          changed = true
+          continue
+        }
+
+        next[key] = value
+      }
+
+      return changed ? next : prev
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   // reminder engine — checks every 20s for newly-due, un-acted doses & appointments
   const alarmingKeys = useRef(new Set(alarmQueue.map((o) => o.key)))
   alarmingKeys.current = new Set(alarmQueue.map((o) => o.key))

@@ -98,9 +98,9 @@ public class EnhancedRemindersReceiver extends BroadcastReceiver {
         );
 
         // Create action intents for "Taken", "Skip", "Snooze"
-        PendingIntent takenAction = createActionIntent(context, notificationId, "taken", doseKey);
-        PendingIntent skipAction = createActionIntent(context, notificationId, "skip", doseKey);
-        PendingIntent snoozeAction = createActionIntent(context, notificationId, "snooze", doseKey);
+        PendingIntent takenAction = createActionIntent(context, notificationId, "taken", doseKey, medicationName, dosage, time);
+        PendingIntent skipAction = createActionIntent(context, notificationId, "skip", doseKey, medicationName, dosage, time);
+        PendingIntent snoozeAction = createActionIntent(context, notificationId, "snooze", doseKey, medicationName, dosage, time);
 
         // Build the notification
         NotificationCompat.Builder builder = new NotificationCompat.Builder(context, CHANNEL_ID)
@@ -141,6 +141,9 @@ public class EnhancedRemindersReceiver extends BroadcastReceiver {
         NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
         notificationManager.notify(notificationId, notification);
 
+        // The alarm has fired; it no longer needs to be restored after a reboot.
+        ReminderStore.remove(context, notificationId);
+
         Log.d(TAG, "Triggered enhanced reminder notification id=" + notificationId);
     }
 
@@ -148,6 +151,9 @@ public class EnhancedRemindersReceiver extends BroadcastReceiver {
         int notificationId = intent.getIntExtra("notification_id", -1);
         String action = intent.getStringExtra("action");
         String doseKey = intent.getStringExtra("dose_key");
+        String medicationName = intent.getStringExtra("medication_name");
+        String dosage = intent.getStringExtra("dosage");
+        String time = intent.getStringExtra("time");
 
         if (action == null) return;
 
@@ -168,26 +174,67 @@ public class EnhancedRemindersReceiver extends BroadcastReceiver {
         resultIntent.putExtra("dose_key", doseKey);
         context.sendBroadcast(resultIntent);
 
-        // If snooze, reschedule for 10 minutes later
-        if ("snooze".equals(action)) {
-            // We need to get the original medication info to reschedule
-            // For now, we'll just log - the JS side should handle rescheduling
-            Log.d(TAG, "Snooze action - JS should reschedule");
+        // If snooze, natively reschedule for 10 minutes later so the alarm
+        // fires even if the JS web view bridge isn't listening.
+        if ("snooze".equals(action) && medicationName != null && dosage != null) {
+            long triggerAtMillis = System.currentTimeMillis() + 10 * 60 * 1000L;
+            EnhancedReminderNotificationHelper helper =
+                new EnhancedReminderNotificationHelper(context);
+            helper.scheduleSnooze(notificationId, doseKey, medicationName, dosage, time, triggerAtMillis);
+            Log.d(TAG, "Snooze rescheduled natively for id=" + notificationId);
+        } else {
+            // Taken / skipped, or a snooze that cannot be rescheduled.
+            ReminderStore.remove(context, notificationId);
         }
     }
 
     private void handleBootCompleted(Context context) {
-        Log.d(TAG, "Boot completed - enhanced reminders should be rescheduled by JS");
-        // The JS side (App.tsx) will call syncLocalNotifications on startup
-        // which will reschedule all enhanced reminders
+        long now = System.currentTimeMillis();
+        EnhancedReminderNotificationHelper helper =
+            new EnhancedReminderNotificationHelper(context);
+        int restored = 0;
+
+        // AlarmManager alarms are cleared by a reboot. Recreate every reminder
+        // whose trigger is still in the future; past ones are stale and would
+        // only fire a late alarm. JS refreshes the whole window when the app
+        // next opens, which also covers reminders missed while powered off.
+        for (ReminderStore.Reminder reminder : ReminderStore.getAll(context)) {
+            if (reminder.triggerAtMillis <= now
+                || reminder.medicationName == null
+                || reminder.dosage == null) {
+                ReminderStore.remove(context, reminder.id);
+                continue;
+            }
+
+            try {
+                helper.scheduleEnhancedReminder(
+                    reminder.id,
+                    reminder.key,
+                    reminder.medicationName,
+                    reminder.dosage,
+                    reminder.time,
+                    reminder.triggerAtMillis,
+                    reminder.language
+                );
+                restored += 1;
+            } catch (Exception e) {
+                Log.e(TAG, "Failed to restore enhanced reminder id=" + reminder.id, e);
+            }
+        }
+
+        Log.d(TAG, "Boot completed - restored " + restored + " enhanced reminders");
     }
 
-    private PendingIntent createActionIntent(Context context, int notificationId, String action, String doseKey) {
+    private PendingIntent createActionIntent(Context context, int notificationId, String action, String doseKey,
+                                             String medicationName, String dosage, String time) {
         Intent intent = new Intent(context, EnhancedRemindersReceiver.class);
         intent.setAction("com.medtrak.app.ENHANCED_REMINDER_ACTION");
         intent.putExtra("notification_id", notificationId);
         intent.putExtra("action", action);
         intent.putExtra("dose_key", doseKey);
+        intent.putExtra("medication_name", medicationName);
+        intent.putExtra("dosage", dosage);
+        intent.putExtra("time", time);
 
         int flags = PendingIntent.FLAG_UPDATE_CURRENT;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {

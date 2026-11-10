@@ -79,4 +79,8 @@
     
     <!-- Required for full-screen intent on lock screen (Android 10+) -->
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+
+    <!-- Required on Android 14+ for the full-screen medication alarm. Without
+         this the system downgrades it to a heads-up notification. -->
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
 </manifest>
