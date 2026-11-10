@@ -156,9 +156,14 @@ public class FullScreenAlarmActivity extends Activity {
         resultIntent.putExtra("dose_key", doseKey);
         sendBroadcast(resultIntent);
 
-        // If snooze, reschedule for 10 minutes later
+        // If snooze, natively reschedule for 10 minutes later so the alarm
+        // fires even if the JS web view bridge isn't listening.
         if ("snooze".equals(action)) {
-            // This will be handled by the receiver which will reschedule
+            long triggerAtMillis = System.currentTimeMillis() + 10 * 60 * 1000L;
+            EnhancedReminderNotificationHelper helper =
+                new EnhancedReminderNotificationHelper(this);
+            helper.scheduleSnooze(notificationId, doseKey, medicationName, dosage, time, triggerAtMillis);
+            Log.d(TAG, "Snooze rescheduled natively for id=" + notificationId);
         }
 
         finish();
